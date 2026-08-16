@@ -1,0 +1,60 @@
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+pip-wheel-metadata/
+
+# ─── Virtual Environments ─────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── IDE / Editor ─────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ─── Agent / AI Tooling ───────────────────────────────────
+.agent/
+.gemini/
+artifacts/
+.cursor/
+.aider*
+
+# ─── Testing & Coverage ──────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ─── Database (regenerated on first run) ──────────────────
+*.db
+*.sqlite3
+
+# ─── OS Artifacts ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# ─── Exports (generated at runtime) ──────────────────────
+Stock_Cycle_Analysis_Export.xlsx
+
+# ─── Resources (internal dev spec, not needed at runtime) ─
+resources/
+
+# ─── Logs ─────────────────────────────────────────────────
+*.log

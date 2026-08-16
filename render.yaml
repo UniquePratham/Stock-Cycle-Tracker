@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: stock-cycle-tracker
+    runtime: python
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: python run_app.py --port 10000 --host 0.0.0.0
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: PORT
+        value: "10000"
