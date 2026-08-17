@@ -83,20 +83,21 @@ class StockDetailView(rio.Component):
             is_mobile=is_mobile,
         )
 
-        # Tight, perfectly sized Exchange Badge (fixes uneven background issue)
+        # Tight, non-stretching Exchange Badge
         exchange_badge = rio.Card(
             rio.Text(
                 stock.preferred_exchange.value,
                 font_size=0.72,
                 font_weight="bold",
                 fill=rio.Color.from_hex("#60A5FA"),
-                margin_x=0.4,
+                margin_x=0.45,
                 margin_y=0.1,
             ),
             corner_radius=0.3,
             color="hud",
             grow_x=False,
             grow_y=False,
+            align_x=0.0,
             align_y=0.5,
         )
 
@@ -114,6 +115,7 @@ class StockDetailView(rio.Component):
             color="hud",
             grow_x=False,
             grow_y=False,
+            align_x=0.0,
             align_y=0.5,
         )
 
@@ -136,6 +138,7 @@ class StockDetailView(rio.Component):
                         price_badge,
                         spacing=0.3,
                         align_y=0.5,
+                        align_x=1.0,
                     ),
                     align_y=0.5,
                     grow_x=True,
@@ -145,6 +148,8 @@ class StockDetailView(rio.Component):
                     exchange_badge,
                     spacing=0.3,
                     align_y=0.5,
+                    align_x=0.0,
+                    grow_x=False,
                 ),
                 rio.Text(f"{stock.company_name} — {len(cycles)} Cycle(s)", font_size=0.75, fill=COLOR_TEXT_MUTED),
                 spacing=0.3,
@@ -166,9 +171,12 @@ class StockDetailView(rio.Component):
                         exchange_badge,
                         spacing=0.4,
                         align_y=0.5,
+                        align_x=0.0,
+                        grow_x=False,
                     ),
                     rio.Text(f"{stock.company_name} — {len(cycles)} Research Cycle(s) Tracked", font_size=0.85, fill=COLOR_TEXT_MUTED),
                     spacing=0.05,
+                    align_x=0.0,
                 ),
                 rio.Spacer(),
                 rio.Card(
@@ -212,7 +220,7 @@ class StockDetailView(rio.Component):
                         f"Cycle {a.cycle_number} ({a.original_reference_date.strftime('%d-%b-%Y')})",
                         shape="rounded",
                         style="major" if is_selected else "minor",
-                        color="primary" if is_selected else "neutral",
+                        color="primary",
                         on_press=lambda idx=i: self._select_cycle(idx),
                     )
                 )
@@ -223,7 +231,7 @@ class StockDetailView(rio.Component):
                     "✨ Overlay All Cycles",
                     shape="rounded",
                     style="major" if self.overlay_all_cycles else "minor",
-                    color="primary" if self.overlay_all_cycles else "neutral",
+                    color="secondary" if self.overlay_all_cycles else "primary",
                     on_press=self._toggle_overlay_all,
                 )
             )
@@ -232,24 +240,24 @@ class StockDetailView(rio.Component):
                 rio.Column(
                     rio.Row(
                         rio.Icon("material/tune", fill=rio.Color.from_hex("#3B82F6"), min_width=1.2, min_height=1.2),
-                        rio.Text("Select Active Cycle to View on Chart:", font_size=0.85, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        rio.Text("Select Active Cycle to View on Chart:", font_size=0.9, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
                         spacing=0.4,
                         align_y=0.5,
                     ),
                     rio.FlowContainer(
                         *tab_buttons,
-                        spacing=0.4,
+                        spacing=0.5,
                         row_spacing=0.4,
-                        column_spacing=0.4,
+                        column_spacing=0.5,
                         justify="left",
                         grow_x=True,
                     ),
-                    spacing=0.4,
-                    margin=0.6,
+                    spacing=0.5,
+                    margin=0.7,
                     grow_x=True,
                 ),
-                corner_radius=0.4,
-                color="hud",
+                corner_radius=0.5,
+                color="neutral",
                 margin_x=0.6 if is_mobile else 1.2,
                 grow_x=True,
             )
@@ -263,9 +271,9 @@ class StockDetailView(rio.Component):
 
             card1 = rio.Card(
                 rio.Column(
-                    rio.Text(f"{c_label} Ref High", font_size=0.78, fill=COLOR_TEXT_MUTED),
-                    rio.Text(f"₹{active_analysis.reference_high:,.2f}", font_size=1.25, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                    rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.72, fill=COLOR_TEXT_DIM),
+                    rio.Text(f"{c_label} Ref High", font_size=0.8, fill=COLOR_TEXT_MUTED),
+                    rio.Text(f"₹{active_analysis.reference_high:,.2f}", font_size=1.3, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                    rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
                     spacing=0.08,
                     margin=0.6,
                 ),
@@ -275,9 +283,9 @@ class StockDetailView(rio.Component):
             )
             card2 = rio.Card(
                 rio.Column(
-                    rio.Text("Percentage Change", font_size=0.78, fill=COLOR_TEXT_MUTED),
-                    rio.Text(f"{active_analysis.percentage_change:+.2f}%", font_size=1.25, font_weight="bold", fill=chg_col),
-                    rio.Text("vs Reference High", font_size=0.72, fill=COLOR_TEXT_DIM),
+                    rio.Text("Percentage Change", font_size=0.8, fill=COLOR_TEXT_MUTED),
+                    rio.Text(f"{active_analysis.percentage_change:+.2f}%", font_size=1.3, font_weight="bold", fill=chg_col),
+                    rio.Text("vs Reference High", font_size=0.75, fill=COLOR_TEXT_DIM),
                     spacing=0.08,
                     margin=0.6,
                 ),
@@ -287,9 +295,9 @@ class StockDetailView(rio.Component):
             )
             card3 = rio.Card(
                 rio.Column(
-                    rio.Text("Classification Bucket", font_size=0.78, fill=COLOR_TEXT_MUTED),
-                    rio.Text(active_analysis.bucket, font_size=1.25, font_weight="bold", fill=bkt_col),
-                    rio.Text(f"Window: {active_analysis.cycle_start_date.strftime('%d-%b')} → {active_analysis.cycle_end_date.strftime('%d-%b-%y')}", font_size=0.72, fill=COLOR_TEXT_DIM),
+                    rio.Text("Classification Bucket", font_size=0.8, fill=COLOR_TEXT_MUTED),
+                    rio.Text(active_analysis.bucket, font_size=1.3, font_weight="bold", fill=bkt_col),
+                    rio.Text(f"Window: {active_analysis.cycle_start_date.strftime('%d-%b')} → {active_analysis.cycle_end_date.strftime('%d-%b-%y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
                     spacing=0.08,
                     margin=0.6,
                 ),
@@ -317,7 +325,7 @@ class StockDetailView(rio.Component):
                     grow_x=True,
                 )
 
-        # Plotly Chart Card (with mobile rotation tip)
+        # Plotly Chart Card
         chart_elements: list[rio.Component] = []
         if is_mobile:
             chart_elements.append(
@@ -405,7 +413,7 @@ class StockDetailView(rio.Component):
                             icon="material/show-chart",
                             shape="rounded",
                             style="major" if is_active else "minor",
-                            color="primary" if is_active else "neutral",
+                            color="primary",
                             on_press=lambda idx=i: self._select_cycle(idx),
                         ),
                         align_y=0.5,
@@ -418,7 +426,16 @@ class StockDetailView(rio.Component):
             else:
                 card_content = rio.Row(
                     rio.Column(
-                        rio.Text(f"Cycle {a.cycle_number}", font_size=1.0, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        rio.Row(
+                            rio.Text(f"Cycle {a.cycle_number}", font_size=1.05, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                            rio.Card(
+                                rio.Text("ACTIVE ON CHART", font_size=0.65, font_weight="bold", fill=COLOR_UP_STRONG, margin_x=0.35, margin_y=0.1),
+                                corner_radius=0.2,
+                                color="hud",
+                            ) if is_active else rio.Spacer(),
+                            spacing=0.4,
+                            align_y=0.5,
+                        ),
                         rio.Text(f"Original Date: {a.original_reference_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
                         spacing=0.05,
                     ),
@@ -444,11 +461,11 @@ class StockDetailView(rio.Component):
                         align_x=1.0,
                     ),
                     rio.Button(
-                        "Active Chart" if is_active else "Switch Chart",
+                        "Active on Chart" if is_active else "Switch to This Cycle",
                         icon="material/show-chart",
                         shape="rounded",
                         style="major" if is_active else "minor",
-                        color="primary" if is_active else "neutral",
+                        color="primary",
                         on_press=lambda idx=i: self._select_cycle(idx),
                     ),
                     spacing=0.8,

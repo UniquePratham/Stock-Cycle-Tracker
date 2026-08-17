@@ -298,6 +298,8 @@ class ManageCyclesView(rio.Component):
                                 exchange_badge,
                                 spacing=0.3,
                                 align_y=0.5,
+                                align_x=0.0,
+                                grow_x=False,
                             ),
                             rio.Spacer(),
                             rio.Button(
@@ -330,6 +332,8 @@ class ManageCyclesView(rio.Component):
                             exchange_badge,
                             spacing=0.4,
                             align_y=0.5,
+                            align_x=0.0,
+                            grow_x=False,
                         ),
                         rio.Spacer(),
                         rio.Button(
