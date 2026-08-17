@@ -1,4 +1,4 @@
-"""Root Rio Application and navigation container with responsive dark navigation bar."""
+"""Root Rio Application and navigation container with responsive mobile hamburger drawer."""
 
 from __future__ import annotations
 
@@ -24,16 +24,21 @@ from stock_cycle_tracker.ui.views.stock_detail_view import StockDetailView
 
 
 class RootComponent(rio.Component):
-    """Main application frame with responsive dark navigation bar."""
+    """Main application frame with responsive dark navigation bar and mobile hamburger menu."""
 
     active_page: str = "dashboard"
     selected_stock: Optional[str] = None
+    is_mobile_menu_open: bool = False
 
     def navigate(self, page_name: str, stock_symbol: Optional[str] = None) -> None:
         self.active_page = page_name
         self.selected_stock = stock_symbol
+        self.is_mobile_menu_open = False
 
-    def _build_nav_button(self, label: str, icon: str, page_name: str) -> rio.Component:
+    def _toggle_mobile_menu(self) -> None:
+        self.is_mobile_menu_open = not self.is_mobile_menu_open
+
+    def _build_nav_button(self, label: str, icon: str, page_name: str, is_mobile: bool = False) -> rio.Component:
         is_active = self.active_page == page_name
         return rio.Button(
             label,
@@ -41,15 +46,83 @@ class RootComponent(rio.Component):
             shape="rounded",
             style="major" if is_active else "plain-text",
             color="primary" if is_active else "neutral",
-            min_height=2.2,
+            min_height=2.4 if is_mobile else 2.2,
+            grow_x=is_mobile,
             on_press=lambda: self.navigate(page_name, None),
         )
 
     def build(self) -> rio.Component:
-        # Fully responsive Navigation Header
-        nav_header = rio.Card(
-            rio.FlowContainer(
-                # Brand Logo & Title
+        is_mobile = self.session.window_width < 55.0
+
+        # Build Navbar Header
+        header_content: rio.Component
+        if is_mobile:
+            # Mobile Header: Logo + Title + Hamburger Icon Button
+            mobile_top_bar = rio.Row(
+                rio.Row(
+                    rio.Icon(
+                        "material/candlestick-chart",
+                        fill=rio.Color.from_hex("#3B82F6"),
+                        min_width=1.6,
+                        min_height=1.6,
+                    ),
+                    rio.Column(
+                        rio.Text(
+                            "CYCLE TRACKER",
+                            font_weight="bold",
+                            font_size=1.0,
+                            fill=COLOR_TEXT_PRIMARY,
+                        ),
+                        rio.Text(
+                            "Cycle Intelligence",
+                            font_size=0.68,
+                            fill=COLOR_TEXT_MUTED,
+                        ),
+                        spacing=0.02,
+                    ),
+                    spacing=0.4,
+                    align_y=0.5,
+                ),
+                rio.Spacer(),
+                rio.IconButton(
+                    "material/close" if self.is_mobile_menu_open else "material/menu",
+                    style="minor",
+                    color="primary" if self.is_mobile_menu_open else "neutral",
+                    min_size=2.4,
+                    on_press=self._toggle_mobile_menu,
+                ),
+                spacing=0.4,
+                align_y=0.5,
+                margin_x=0.6,
+                margin_y=0.4,
+                grow_x=True,
+            )
+
+            # If hamburger menu is open, show vertical collapsible drawer
+            if self.is_mobile_menu_open:
+                menu_drawer = rio.Column(
+                    rio.Separator(),
+                    self._build_nav_button("Dashboard", "material/dashboard", "dashboard", is_mobile=True),
+                    self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles", is_mobile=True),
+                    self._build_nav_button("Excel Ingestion", "material/table-view", "excel", is_mobile=True),
+                    self._build_nav_button("Alerts", "material/notifications", "alerts", is_mobile=True),
+                    spacing=0.3,
+                    margin_x=0.6,
+                    margin_bottom=0.6,
+                    margin_top=0.2,
+                    grow_x=True,
+                )
+                header_content = rio.Column(
+                    mobile_top_bar,
+                    menu_drawer,
+                    spacing=0.2,
+                    grow_x=True,
+                )
+            else:
+                header_content = mobile_top_bar
+        else:
+            # Desktop Header: Logo + Title on left, Nav pills on right
+            header_content = rio.Row(
                 rio.Row(
                     rio.Icon(
                         "material/candlestick-chart",
@@ -74,25 +147,29 @@ class RootComponent(rio.Component):
                     spacing=0.5,
                     align_y=0.5,
                 ),
-                # Flat navigation buttons for seamless mobile wrap
-                self._build_nav_button("Dashboard", "material/dashboard", "dashboard"),
-                self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
-                self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
-                self._build_nav_button("Alerts", "material/notifications", "alerts"),
-                spacing=0.4,
-                row_spacing=0.4,
-                column_spacing=0.4,
-                justify="justify",
+                rio.Spacer(),
+                rio.Row(
+                    self._build_nav_button("Dashboard", "material/dashboard", "dashboard"),
+                    self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
+                    self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
+                    self._build_nav_button("Alerts", "material/notifications", "alerts"),
+                    spacing=0.4,
+                    align_y=0.5,
+                ),
+                spacing=0.8,
                 align_y=0.5,
                 margin_x=0.8,
                 margin_y=0.4,
                 grow_x=True,
-            ),
+            )
+
+        nav_header = rio.Card(
+            header_content,
             corner_radius=0.5,
             color="neutral",
-            margin_x=1.2,
-            margin_top=0.6,
-            margin_bottom=0.4,
+            margin_x=0.6 if is_mobile else 1.2,
+            margin_top=0.4 if is_mobile else 0.6,
+            margin_bottom=0.3 if is_mobile else 0.4,
             grow_x=True,
             grow_y=False,
             align_y=0.0,
