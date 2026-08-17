@@ -1,4 +1,4 @@
-"""Root Rio Application and navigation container with responsive mobile hamburger drawer."""
+"""Root Rio Application and navigation container with high-visibility mobile hamburger drawer."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from stock_cycle_tracker.ui.views.stock_detail_view import StockDetailView
 
 
 class RootComponent(rio.Component):
-    """Main application frame with responsive dark navigation bar and mobile hamburger menu."""
+    """Main application frame with responsive dark navigation bar and high-visibility mobile hamburger menu."""
 
     active_page: str = "dashboard"
     selected_stock: Optional[str] = None
@@ -57,7 +57,7 @@ class RootComponent(rio.Component):
         # Build Navbar Header
         header_content: rio.Component
         if is_mobile:
-            # Mobile Header: Logo + Title + Hamburger Icon Button
+            # Mobile Header: Logo + Title + Bright High-Contrast Hamburger Icon Button
             mobile_top_bar = rio.Row(
                 rio.Row(
                     rio.Icon(
@@ -70,7 +70,7 @@ class RootComponent(rio.Component):
                         rio.Text(
                             "CYCLE TRACKER",
                             font_weight="bold",
-                            font_size=1.0,
+                            font_size=0.98,
                             fill=COLOR_TEXT_PRIMARY,
                         ),
                         rio.Text(
@@ -80,21 +80,26 @@ class RootComponent(rio.Component):
                         ),
                         spacing=0.02,
                     ),
-                    spacing=0.4,
+                    spacing=0.35,
                     align_y=0.5,
+                    align_x=0.0,
+                    grow_x=False,
                 ),
                 rio.Spacer(),
-                rio.IconButton(
-                    "material/close" if self.is_mobile_menu_open else "material/menu",
-                    style="minor",
-                    color="primary" if self.is_mobile_menu_open else "neutral",
-                    min_size=2.4,
+                rio.Button(
+                    "",
+                    icon="material/close" if self.is_mobile_menu_open else "material/menu",
+                    style="major",
+                    color="primary",
+                    shape="rounded",
+                    min_height=2.2,
+                    min_width=2.6,
                     on_press=self._toggle_mobile_menu,
                 ),
-                spacing=0.4,
+                spacing=0.3,
                 align_y=0.5,
-                margin_x=0.6,
-                margin_y=0.4,
+                margin_x=0.5,
+                margin_y=0.35,
                 grow_x=True,
             )
 
@@ -107,8 +112,8 @@ class RootComponent(rio.Component):
                     self._build_nav_button("Excel Ingestion", "material/table-view", "excel", is_mobile=True),
                     self._build_nav_button("Alerts", "material/notifications", "alerts", is_mobile=True),
                     spacing=0.3,
-                    margin_x=0.6,
-                    margin_bottom=0.6,
+                    margin_x=0.5,
+                    margin_bottom=0.5,
                     margin_top=0.2,
                     grow_x=True,
                 )
@@ -146,6 +151,8 @@ class RootComponent(rio.Component):
                     ),
                     spacing=0.5,
                     align_y=0.5,
+                    align_x=0.0,
+                    grow_x=False,
                 ),
                 rio.Spacer(),
                 rio.Row(
@@ -167,8 +174,8 @@ class RootComponent(rio.Component):
             header_content,
             corner_radius=0.5,
             color="neutral",
-            margin_x=0.6 if is_mobile else 1.2,
-            margin_top=0.4 if is_mobile else 0.6,
+            margin_x=0.4 if is_mobile else 1.2,
+            margin_top=0.3 if is_mobile else 0.6,
             margin_bottom=0.3 if is_mobile else 0.4,
             grow_x=True,
             grow_y=False,

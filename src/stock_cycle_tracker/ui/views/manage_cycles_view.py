@@ -93,13 +93,13 @@ class ManageCyclesView(rio.Component):
         # Header Title
         header = rio.FlowContainer(
             rio.Column(
-                rio.Text("Manage Stocks & Research Cycles", font_size=1.3 if is_mobile else 1.6, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                rio.Text("Add new research anchor dates or manage active tracked cycles", font_size=0.78 if is_mobile else 0.88, fill=COLOR_TEXT_MUTED),
-                spacing=0.1,
+                rio.Text("Manage Stocks & Cycles", font_size=1.3 if is_mobile else 1.6, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                rio.Text("Add research anchor dates or manage tracked cycles", font_size=0.75 if is_mobile else 0.88, fill=COLOR_TEXT_MUTED),
+                spacing=0.08,
             ),
             spacing=1.0,
             align_y=0.5,
-            margin_x=0.6 if is_mobile else 1.2,
+            margin_x=0.4 if is_mobile else 1.2,
             margin_top=0.2,
             grow_x=True,
         )
@@ -111,23 +111,23 @@ class ManageCyclesView(rio.Component):
                     rio.Icon("material/add-circle", fill=rio.Color.from_hex("#3B82F6"), min_width=1.2 if is_mobile else 1.4, min_height=1.2 if is_mobile else 1.4),
                     rio.Column(
                         rio.Text("Add New Research Date Cycle", font_size=0.95 if is_mobile else 1.1, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                        rio.Text("Enter a stock ticker (e.g. RELIANCE, TCS) and historical date", font_size=0.75 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
-                        spacing=0.03,
+                        rio.Text("Enter a stock ticker (e.g. RELIANCE, TCS) and historical date", font_size=0.72 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
+                        spacing=0.02,
                     ),
-                    spacing=0.4 if is_mobile else 0.6,
+                    spacing=0.35 if is_mobile else 0.6,
                     align_y=0.5,
                 ),
                 rio.FlowContainer(
                     rio.TextInput(
                         label="Stock Symbol (e.g. RELIANCE)",
                         text=self.bind().stock_input,
-                        min_width=10.0 if is_mobile else 14.0,
+                        min_width=8.0 if is_mobile else 14.0,
                         grow_x=True,
                     ),
                     rio.TextInput(
                         label="Research Date (e.g. 10-Jan-2014)",
                         text=self.bind().date_input_str,
-                        min_width=10.0 if is_mobile else 12.0,
+                        min_width=8.0 if is_mobile else 12.0,
                         grow_x=True,
                     ),
                     rio.Button(
@@ -140,9 +140,9 @@ class ManageCyclesView(rio.Component):
                         grow_x=is_mobile,
                         on_press=self._on_add_cycle,
                     ),
-                    spacing=0.4 if is_mobile else 0.6,
+                    spacing=0.3 if is_mobile else 0.6,
                     row_spacing=0.3 if is_mobile else 0.4,
-                    column_spacing=0.4 if is_mobile else 0.6,
+                    column_spacing=0.3 if is_mobile else 0.6,
                     justify="left",
                     align_y=0.5,
                     grow_x=True,
@@ -153,13 +153,13 @@ class ManageCyclesView(rio.Component):
                     font_weight="bold",
                     fill=COLOR_DOWN_STRONG if self.feedback_is_error else COLOR_UP_STRONG,
                 ) if self.feedback_message else rio.Spacer(),
-                spacing=0.4 if is_mobile else 0.6,
-                margin=0.6 if is_mobile else 1.0,
+                spacing=0.3 if is_mobile else 0.6,
+                margin=0.5 if is_mobile else 1.0,
                 grow_x=True,
             ),
             corner_radius=0.5,
             color="neutral",
-            margin_x=0.6 if is_mobile else 1.2,
+            margin_x=0.4 if is_mobile else 1.2,
             grow_x=True,
         )
 
@@ -171,7 +171,7 @@ class ManageCyclesView(rio.Component):
                 font_size=1.1 if is_mobile else 1.2,
                 font_weight="bold",
                 fill=COLOR_TEXT_PRIMARY,
-                margin_x=0.6 if is_mobile else 1.2,
+                margin_x=0.4 if is_mobile else 1.2,
                 margin_top=0.4,
             )
         )
@@ -189,7 +189,7 @@ class ManageCyclesView(rio.Component):
                     ),
                     corner_radius=0.5,
                     color="neutral",
-                    margin_x=0.6 if is_mobile else 1.2,
+                    margin_x=0.4 if is_mobile else 1.2,
                     grow_x=True,
                 )
             )
@@ -286,6 +286,7 @@ class ManageCyclesView(rio.Component):
                     color="hud",
                     grow_x=False,
                     grow_y=False,
+                    align_x=0.0,
                     align_y=0.5,
                 )
 
@@ -302,27 +303,35 @@ class ManageCyclesView(rio.Component):
                                 grow_x=False,
                             ),
                             rio.Spacer(),
+                            rio.Text(stk.company_name[:24], font_size=0.72, fill=COLOR_TEXT_MUTED),
+                            align_y=0.5,
+                            grow_x=True,
+                        ),
+                        rio.Row(
                             rio.Button(
-                                "Chart",
+                                "View Chart",
                                 icon="material/show-chart",
                                 shape="rounded",
                                 style="minor",
                                 color="primary",
+                                min_height=2.0,
+                                grow_x=True,
                                 on_press=lambda s=stk_sym: self.on_navigate("stock_detail", s),
                             ),
                             rio.Button(
-                                "Remove",
+                                "Remove Stock",
+                                icon="material/delete-forever",
                                 shape="rounded",
                                 style="plain-text",
                                 color="danger",
+                                min_height=2.0,
+                                grow_x=True,
                                 on_press=lambda sid=stk_id: self._on_delete_stock(sid),
                             ),
-                            spacing=0.2,
-                            align_y=0.5,
+                            spacing=0.3,
                             grow_x=True,
                         ),
-                        rio.Text(stk.company_name, font_size=0.75, fill=COLOR_TEXT_MUTED),
-                        spacing=0.2,
+                        spacing=0.25,
                         grow_x=True,
                     )
                 else:
@@ -363,12 +372,12 @@ class ManageCyclesView(rio.Component):
                         rio.Separator(),
                         *cycles_rows,
                         spacing=0.3,
-                        margin=0.6 if is_mobile else 0.8,
+                        margin=0.5 if is_mobile else 0.8,
                         grow_x=True,
                     ),
                     corner_radius=0.5,
                     color="neutral",
-                    margin_x=0.6 if is_mobile else 1.2,
+                    margin_x=0.4 if is_mobile else 1.2,
                     grow_x=True,
                 )
                 stock_cards.append(card)
@@ -377,7 +386,7 @@ class ManageCyclesView(rio.Component):
             header,
             form_card,
             *stock_cards,
-            spacing=0.6 if is_mobile else 0.8,
+            spacing=0.5 if is_mobile else 0.8,
             grow_x=True,
             margin_bottom=1.5,
         )

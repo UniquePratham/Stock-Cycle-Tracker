@@ -1,4 +1,4 @@
-"""Plotly chart builder for stock cycle visual analysis with responsive mobile orientation and multi-cycle support."""
+"""Plotly chart builder for stock cycle visual analysis with orientation-aware mobile layout and touch lock."""
 
 from __future__ import annotations
 
@@ -24,9 +24,15 @@ def create_cycle_plotly_figure(
     all_analyses: Optional[List[CycleAnalysis]] = None,
     overlay_all: bool = False,
     is_mobile: bool = False,
+    is_portrait: bool = False,
 ) -> go.Figure:
-    """Builds a rich, dark-themed financial Plotly figure with multi-cycle switching and tall vertical mobile view."""
-    chart_height = 680 if is_mobile else 520
+    """Builds a rich, dark-themed financial Plotly figure with locked touch scrolling and adaptive orientation."""
+    if is_mobile and is_portrait:
+        chart_height = 720
+    elif is_mobile and not is_portrait:
+        chart_height = 420
+    else:
+        chart_height = 520
 
     if not ohlc_bars:
         fig = go.Figure()
@@ -38,9 +44,10 @@ def create_cycle_plotly_figure(
                 text=f"{symbol} — No Historical Price Data Available",
                 font=dict(color="#94A3B8", size=14),
             ),
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=False, zeroline=False),
+            xaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
+            yaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
             height=chart_height,
+            dragmode=False,
         )
         return fig
 
@@ -96,7 +103,7 @@ def create_cycle_plotly_figure(
             line_width=2.0,
             annotation_text=f"C{c_num} Ref High: ₹{ref_high:,.2f}",
             annotation_position="top right" if not is_mobile else "top left",
-            annotation_font=dict(color=color, size=10 if is_mobile else 11, family="Inter, Roboto, sans-serif"),
+            annotation_font=dict(color=color, size=9 if is_mobile else 11, family="Inter, Roboto, sans-serif"),
             annotation_bgcolor="#1E293B",
             annotation_bordercolor=color,
             annotation_borderwidth=1,
@@ -131,13 +138,13 @@ def create_cycle_plotly_figure(
                 name=f"Current ({analysis.price_type.value})",
                 marker=dict(
                     color=point_col,
-                    size=11 if is_mobile else 13,
+                    size=10 if is_mobile else 13,
                     symbol="circle",
                     line=dict(color="#FFFFFF", width=2.0),
                 ),
                 text=[f" ₹{cur_price:,.2f}"],
                 textposition="top right" if not is_mobile else "top left",
-                textfont=dict(color=point_col, size=11 if is_mobile else 13, family="Inter, Roboto, sans-serif"),
+                textfont=dict(color=point_col, size=10 if is_mobile else 13, family="Inter, Roboto, sans-serif"),
                 hovertemplate="<b>Current Price</b>: ₹%{y:,.2f}<br>%{text}<extra></extra>",
             )
         )
@@ -152,12 +159,13 @@ def create_cycle_plotly_figure(
         template="plotly_dark",
         paper_bgcolor="#111827",
         plot_bgcolor="#0B1120",
-        margin=dict(l=45 if is_mobile else 65, r=20 if is_mobile else 45, t=55 if is_mobile else 65, b=45 if is_mobile else 50),
+        margin=dict(l=40 if is_mobile else 65, r=15 if is_mobile else 45, t=50 if is_mobile else 65, b=40 if is_mobile else 50),
         height=chart_height,
         autosize=True,
+        dragmode=False,  # Disables touch-drag panning so page scroll works naturally
         title=dict(
             text=title_text,
-            font=dict(size=13 if is_mobile else 16, color="#F8FAFC", family="Inter, Roboto, sans-serif"),
+            font=dict(size=12 if is_mobile else 16, color="#F8FAFC", family="Inter, Roboto, sans-serif"),
             x=0.02,
             y=0.97,
         ),
@@ -175,6 +183,7 @@ def create_cycle_plotly_figure(
             gridcolor="#1E293B",
             gridwidth=1,
             zeroline=False,
+            fixedrange=True,  # Disables horizontal zooming/editing on touch
             color="#94A3B8",
             tickfont=dict(size=9 if is_mobile else 11),
         ),
@@ -183,13 +192,14 @@ def create_cycle_plotly_figure(
             gridcolor="#1E293B",
             gridwidth=1,
             zeroline=False,
+            fixedrange=True,  # Disables vertical zooming/editing on touch
             color="#94A3B8",
             tickprefix="₹",
             tickformat=",.2f",
             separatethousands=True,
             tickfont=dict(size=9 if is_mobile else 11),
         ),
-        hovermode="x unified",
+        hovermode="x unified" if not is_mobile else False,
     )
 
     return fig
