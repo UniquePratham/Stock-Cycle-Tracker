@@ -388,7 +388,7 @@ class ExcelView(rio.Component):
         spec_card = rio.Card(
             rio.Column(
                 rio.Row(
-                    rio.Icon("material/help-outline", fill=rio.Color.from_hex("#8B5CF6"), min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
+                    rio.Icon("material/info", fill=rio.Color.from_hex("#8B5CF6"), min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
                     rio.Column(
                         rio.Text("Spreadsheet Column Specifications & Formats", font_size=1.0 if is_mobile else 1.2, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
                         rio.Text("Intelligent column mapping automatically detects all common naming variations", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),

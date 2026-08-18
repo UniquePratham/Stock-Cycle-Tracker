@@ -43,7 +43,7 @@ class RootComponent(rio.Component):
 
     def _toggle_theme(self) -> None:
         self.is_dark_mode = not self.is_dark_mode
-        self.session.theme = "dark" if self.is_dark_mode else "light"
+        self.session.theme = create_dark_theme() if self.is_dark_mode else create_light_theme()
 
     def _build_nav_button(self, label: str, icon: str, page_name: str, is_mobile: bool = False) -> rio.Component:
         is_active = self.active_page == page_name
@@ -97,10 +97,10 @@ class RootComponent(rio.Component):
                     "",
                     icon="material/light-mode" if self.is_dark_mode else "material/dark-mode",
                     shape="circle",
-                    style="minor",
+                    style="plain-text",
                     color="neutral",
-                    min_height=2.2,
-                    min_width=2.2,
+                    min_height=2.0,
+                    min_width=2.0,
                     on_press=self._toggle_theme,
                 ),
                 rio.Button(
@@ -180,10 +180,10 @@ class RootComponent(rio.Component):
                         "",
                         icon="material/light-mode" if self.is_dark_mode else "material/dark-mode",
                         shape="circle",
-                        style="minor",
+                        style="plain-text",
                         color="neutral",
-                        min_height=2.2,
-                        min_width=2.2,
+                        min_height=2.0,
+                        min_width=2.0,
                         on_press=self._toggle_theme,
                     ),
                     spacing=0.4,
@@ -234,11 +234,11 @@ class RootComponent(rio.Component):
 
 
 def build_app(db_path: Optional[str] = None) -> rio.App:
-    """Factory creating the configured Rio Application with custom dual light/dark theme."""
+    """Factory creating the configured Rio Application with custom dark theme."""
     ServiceContainer.get(db_path=db_path)
 
     return rio.App(
         build=RootComponent,
         name="Stock Cycle Tracker",
-        theme=create_app_theme(),
+        theme=create_dark_theme(),
     )
