@@ -57,12 +57,12 @@ class DashboardView(rio.Component):
     async def _on_refresh(self) -> None:
         self.is_refreshing = True
         self.status_message = "Updating market prices..."
-        await self.force_refresh()
+        self.force_refresh()
         container = ServiceContainer.get()
         container.cycle_service.get_dashboard_analyses(force_refresh=True)
         self.is_refreshing = False
         self.status_message = "Market data successfully refreshed."
-        await self.force_refresh()
+        self.force_refresh()
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0

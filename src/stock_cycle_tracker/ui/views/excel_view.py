@@ -113,7 +113,7 @@ class ExcelView(rio.Component):
     async def _on_export_excel(self) -> None:
         self.is_exporting = True
         self.export_message = "Generating Excel report..."
-        await self.force_refresh()
+        self.force_refresh()
 
         container = ServiceContainer.get()
         analyses = container.cycle_service.get_dashboard_analyses()
@@ -134,7 +134,7 @@ class ExcelView(rio.Component):
             self.export_message = f"Export failed: {e}"
         finally:
             self.is_exporting = False
-            await self.force_refresh()
+            self.force_refresh()
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
