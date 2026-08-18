@@ -69,10 +69,10 @@ def test_excel_export_18_columns(service_setup):
     wb = openpyxl.load_workbook(io.BytesIO(excel_bytes))
     ws = wb.active
     assert ws.title == "Cycle Analysis"
-    assert ws.max_column == 18
+    assert ws.max_column == 19
     assert ws.cell(row=1, column=1).value == "S.No."
     assert ws.cell(row=1, column=2).value == "Stock Name"
-    assert ws.cell(row=1, column=18).value == "Last Data Refresh"
+    assert ws.cell(row=1, column=19).value == "Last Data Refresh"
 
     # Data row check
     assert ws.cell(row=2, column=2).value == "RELIANCE"

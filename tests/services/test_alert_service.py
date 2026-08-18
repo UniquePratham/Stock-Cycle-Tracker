@@ -41,6 +41,7 @@ def test_alert_lifecycle_and_evaluation(alert_service):
         actual_reference_trading_date=date(2026, 1, 12),
         exchange="NSE",
         reference_high=1300.0,
+        reference_low=1250.0,
         current_price=1150.0,
         price_type=PriceType.CLOSE,
         calculation_date=date(2026, 8, 16),

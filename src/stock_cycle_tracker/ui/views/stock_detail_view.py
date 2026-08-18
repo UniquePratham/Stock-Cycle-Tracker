@@ -288,8 +288,13 @@ class StockDetailView(rio.Component):
             stats_cards = [
                 rio.Card(
                     rio.Column(
-                        rio.Text(f"Cycle {active_analysis.cycle_number} Ref High", font_size=0.75, fill=COLOR_TEXT_MUTED),
-                        rio.Text(f"₹{active_analysis.reference_high:,.2f}", font_size=1.3 if is_mobile else 1.6, font_weight="bold"),
+                        rio.Text(f"Cycle {active_analysis.cycle_number} Ref High / Low", font_size=0.75, fill=COLOR_TEXT_MUTED),
+                        rio.Row(
+                            rio.Text(f"H: ₹{active_analysis.reference_high:,.2f}", font_size=1.1 if is_mobile else 1.3, font_weight="bold"),
+                            rio.Text(f"L: ₹{active_analysis.reference_low:,.2f}", font_size=1.1 if is_mobile else 1.3, fill=COLOR_TEXT_MUTED),
+                            spacing=0.4,
+                            align_y=0.5,
+                        ),
                         rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.7, fill=COLOR_TEXT_DIM),
                         spacing=0.04,
                         margin=0.5 if is_mobile else 0.7,
@@ -397,7 +402,7 @@ class StockDetailView(rio.Component):
                         grow_x=True,
                     ),
                     rio.Row(
-                        rio.Text(f"Ref High: ₹{a.reference_high:,.2f}", font_size=0.78, font_weight="bold"),
+                        rio.Text(f"Ref High: ₹{a.reference_high:,.2f} | Low: ₹{a.reference_low:,.2f}", font_size=0.75, font_weight="bold"),
                         rio.Spacer(),
                         rio.Card(
                             rio.Text(a.bucket, font_size=0.7, font_weight="bold", fill=bk_c, margin_x=0.35, margin_y=0.1),
@@ -417,25 +422,31 @@ class StockDetailView(rio.Component):
                     rio.Column(
                         rio.Text("Original Research Date", font_size=0.7, fill=COLOR_TEXT_DIM),
                         rio.Text(a.original_reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold"),
-                        min_width=11.0,
+                        min_width=10.0,
                         spacing=0.02,
                     ),
                     rio.Column(
                         rio.Text("Actual Trading Date", font_size=0.7, fill=COLOR_TEXT_DIM),
                         rio.Text(a.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.92),
-                        min_width=11.0,
+                        min_width=10.0,
                         spacing=0.02,
                     ),
                     rio.Column(
-                        rio.Text("Reference High", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text("Ref High", font_size=0.7, fill=COLOR_TEXT_DIM),
                         rio.Text(f"₹{a.reference_high:,.2f}", font_size=0.92, font_weight="bold"),
-                        min_width=10.0,
+                        min_width=7.5,
+                        spacing=0.02,
+                    ),
+                    rio.Column(
+                        rio.Text("Ref Low", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(f"₹{a.reference_low:,.2f}", font_size=0.92, fill=COLOR_TEXT_MUTED),
+                        min_width=7.5,
                         spacing=0.02,
                     ),
                     rio.Column(
                         rio.Text("% Change", font_size=0.7, fill=COLOR_TEXT_DIM),
                         rio.Text(f"{a.percentage_change:+.2f}%", font_size=0.95, font_weight="bold", fill=chg_c),
-                        min_width=7.0,
+                        min_width=6.5,
                         spacing=0.02,
                     ),
                     rio.Card(

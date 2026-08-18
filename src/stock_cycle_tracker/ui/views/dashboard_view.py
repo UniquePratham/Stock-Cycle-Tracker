@@ -1,4 +1,4 @@
-"""Polished, modern Dashboard view component with zero horizontal scrollbar and adaptive light/dark typography."""
+"""Polished, modern Dashboard view component with Reference Low column, '+' quick add cycle modal, centered modal overlays, and adaptive light/dark typography."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class DashboardView(rio.Component):
-    """Main Cycle Analysis Dashboard with zero horizontal scrollbar on PC and zero-scroll mobile cards."""
+    """Main Cycle Analysis Dashboard with Reference High/Low, '+' quick add cycle modal, zero horizontal scrollbar on PC and zero-scroll mobile cards."""
 
     on_navigate: Callable[[str, Optional[str]], None]
     search_query: str = ""
@@ -31,6 +31,14 @@ class DashboardView(rio.Component):
     exchange_filter: str = "ALL"
     is_refreshing: bool = False
     status_message: str = ""
+    popup_toast: str = ""
+
+    # Quick Add Cycle Modal State (via '+' button on dashboard)
+    quick_add_stock_symbol: Optional[str] = None
+    quick_add_company_name: str = ""
+    quick_add_date_str: str = ""
+    is_submitting_cycle: bool = False
+    quick_add_error: str = ""
 
     def _get_analyses(self) -> List[CycleAnalysis]:
         container = ServiceContainer.get()
@@ -63,6 +71,51 @@ class DashboardView(rio.Component):
         self.is_refreshing = False
         self.status_message = "Market data successfully refreshed."
         self.force_refresh()
+
+    def _open_quick_add(self, symbol: str, company: str) -> None:
+        self.quick_add_stock_symbol = symbol
+        self.quick_add_company_name = company
+        self.quick_add_date_str = ""
+        self.quick_add_error = ""
+
+    def _close_quick_add(self) -> None:
+        self.quick_add_stock_symbol = None
+        self.quick_add_company_name = ""
+        self.quick_add_date_str = ""
+        self.quick_add_error = ""
+
+    async def _on_confirm_quick_add(self) -> None:
+        raw_date = self.quick_add_date_str.strip()
+        if not raw_date:
+            self.quick_add_error = "Please enter a research date (e.g. 10-Jan-2018)."
+            return
+
+        container = ServiceContainer.get()
+        parsed_dt = container.excel_service._parse_date(raw_date)
+        if not parsed_dt:
+            self.quick_add_error = f"Could not parse date '{raw_date}'. Please use DD-Mon-YYYY or YYYY-MM-DD."
+            return
+
+        if parsed_dt > date.today():
+            self.quick_add_error = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) cannot be in the future."
+            return
+
+        self.is_submitting_cycle = True
+        self.quick_add_error = ""
+        self.force_refresh()
+
+        try:
+            stock, cycle, analysis = container.cycle_service.add_stock_cycle(
+                query=self.quick_add_stock_symbol,
+                reference_date=parsed_dt,
+            )
+            self.popup_toast = f"Cycle Added: Successfully registered Cycle {cycle.cycle_number} for {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
+            self._close_quick_add()
+        except Exception as e:
+            self.quick_add_error = f"Error adding cycle: {e}"
+        finally:
+            self.is_submitting_cycle = False
+            self.force_refresh()
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
@@ -108,7 +161,7 @@ class DashboardView(rio.Component):
                     grow_x=True,
                 ),
                 rio.Text(
-                    "Annual research-date cycle benchmark vs Ref High",
+                    "Annual research-date cycle benchmark vs Ref High / Low",
                     font_size=0.75,
                     fill=COLOR_TEXT_MUTED,
                 ),
@@ -126,7 +179,7 @@ class DashboardView(rio.Component):
                         font_weight="bold",
                     ),
                     rio.Text(
-                        "Annual research-date cycle boundaries benchmarked against historical reference High",
+                        "Annual research-date cycle boundaries benchmarked against historical Reference High & Low",
                         font_size=0.95,
                         fill=COLOR_TEXT_MUTED,
                     ),
@@ -160,6 +213,34 @@ class DashboardView(rio.Component):
                 align_y=0.5,
                 margin_x=1.2,
                 margin_top=0.2,
+                grow_x=True,
+            )
+
+        # Success Popup Toast Banner (if any)
+        toast_banner: Optional[rio.Component] = None
+        if self.popup_toast:
+            toast_banner = rio.Card(
+                rio.Row(
+                    rio.Icon("material/check-circle", fill=COLOR_UP_STRONG, min_width=1.4, min_height=1.4),
+                    rio.Text(self.popup_toast, font_weight="bold", font_size=0.9, fill=COLOR_UP_STRONG),
+                    rio.Spacer(),
+                    rio.Button(
+                        "Dismiss",
+                        shape="rounded",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=1.8,
+                        on_press=lambda: setattr(self, "popup_toast", ""),
+                    ),
+                    spacing=0.4,
+                    align_y=0.5,
+                    margin_x=0.8,
+                    margin_y=0.3,
+                    grow_x=True,
+                ),
+                corner_radius=0.4,
+                color="hud",
+                margin_x=0.4 if is_mobile else 1.2,
                 grow_x=True,
             )
 
@@ -343,6 +424,7 @@ class DashboardView(rio.Component):
                 bucket_col = get_bucket_color(item.bucket)
                 price_badge_col = COLOR_UP_STRONG if item.price_type == PriceType.LIVE else COLOR_TEXT_MUTED
                 sym = item.stock_symbol
+                comp = item.company_name
 
                 mobile_card = rio.Card(
                     rio.Column(
@@ -407,7 +489,7 @@ class DashboardView(rio.Component):
                             ),
                             rio.Spacer(),
                             rio.Column(
-                                rio.Text(f"Ref High: ₹{item.reference_high:,.2f}", font_size=0.78, fill=COLOR_TEXT_MUTED),
+                                rio.Text(f"High: ₹{item.reference_high:,.2f} | Low: ₹{item.reference_low:,.2f}", font_size=0.75, fill=COLOR_TEXT_MUTED),
                                 rio.Text(f"Recur: {item.recurring_reference_date.strftime('%d-%b')}", font_size=0.7, fill=COLOR_TEXT_DIM),
                                 spacing=0.02,
                                 align_x=1.0,
@@ -439,16 +521,30 @@ class DashboardView(rio.Component):
                             align_y=0.5,
                             grow_x=True,
                         ),
-                        # Action Button
-                        rio.Button(
-                            "View Interactive Chart",
-                            icon="material/show-chart",
-                            shape="rounded",
-                            style="minor",
-                            color="primary",
-                            min_height=2.2,
+                        # Action Buttons Row
+                        rio.Row(
+                            rio.Button(
+                                "+ Add Cycle",
+                                icon="material/add",
+                                shape="rounded",
+                                style="major",
+                                color="success",
+                                min_height=2.0,
+                                grow_x=True,
+                                on_press=lambda s=sym, c=comp: self._open_quick_add(s, c),
+                            ),
+                            rio.Button(
+                                "View Chart",
+                                icon="material/show-chart",
+                                shape="rounded",
+                                style="minor",
+                                color="primary",
+                                min_height=2.0,
+                                grow_x=True,
+                                on_press=lambda s=sym: self.on_navigate("stock_detail", s),
+                            ),
+                            spacing=0.3,
                             grow_x=True,
-                            on_press=lambda s=sym: self.on_navigate("stock_detail", s),
                         ),
                         spacing=0.3,
                         margin=0.5,
@@ -474,18 +570,19 @@ class DashboardView(rio.Component):
             # Table Header
             header_row = rio.Card(
                 rio.Row(
-                    rio.Text("STOCK & EXCHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=10.5),
-                    rio.Text("CYCLE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=4.0),
-                    rio.Text("RESEARCH DATE (LD)", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.5),
-                    rio.Text("TRADING DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.5),
-                    rio.Text("REF HIGH", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.5),
-                    rio.Text("CURRENT PRICE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.5),
-                    rio.Text("MODE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=4.2),
-                    rio.Text("% CHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=5.5),
-                    rio.Text("BUCKET CLASSIFICATION", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.0),
+                    rio.Text("STOCK & EXCHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.5),
+                    rio.Text("CYCLE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=3.8),
+                    rio.Text("RESEARCH DATE (LD)", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.0),
+                    rio.Text("TRADING DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.0),
+                    rio.Text("REF HIGH", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=5.8),
+                    rio.Text("REF LOW", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=5.8),
+                    rio.Text("CURRENT PRICE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.0),
+                    rio.Text("MODE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=3.8),
+                    rio.Text("% CHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=5.2),
+                    rio.Text("BUCKET CLASSIFICATION", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.5),
                     rio.Spacer(),
-                    rio.Text("CHART", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=4.5),
-                    spacing=0.4,
+                    rio.Text("ACTIONS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.0),
+                    spacing=0.35,
                     align_y=0.5,
                     margin_x=0.7,
                     margin_y=0.35,
@@ -501,13 +598,14 @@ class DashboardView(rio.Component):
                 bucket_col = get_bucket_color(item.bucket)
                 price_badge_col = COLOR_UP_STRONG if item.price_type == PriceType.LIVE else COLOR_TEXT_MUTED
                 sym = item.stock_symbol
+                comp = item.company_name
 
                 row_card = rio.Card(
                     rio.Row(
                         # Stock & Exchange
                         rio.Column(
                             rio.Row(
-                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.0),
+                                rio.Text(item.stock_symbol, font_weight="bold", font_size=0.98),
                                 rio.Card(
                                     rio.Text(
                                         item.exchange,
@@ -529,74 +627,90 @@ class DashboardView(rio.Component):
                                 align_x=0.0,
                                 grow_x=False,
                             ),
-                            rio.Text(item.company_name[:20], font_size=0.75, fill=COLOR_TEXT_DIM),
-                            min_width=10.5,
+                            rio.Text(item.company_name[:18], font_size=0.72, fill=COLOR_TEXT_DIM),
+                            min_width=9.5,
                             spacing=0.02,
                         ),
                         # Cycle Number
-                        rio.Text(f"Cycle {item.cycle_number}", font_size=0.88, font_weight="bold", fill=COLOR_TEXT_MUTED, min_width=4.0),
+                        rio.Text(f"Cycle {item.cycle_number}", font_size=0.85, font_weight="bold", fill=COLOR_TEXT_MUTED, min_width=3.8),
                         # Original LD
                         rio.Column(
-                            rio.Text(item.original_reference_date.strftime("%d-%b-%Y"), font_size=0.88, font_weight="bold"),
-                            rio.Text(f"Recur: {item.recurring_reference_date.strftime('%d-%b')}", font_size=0.72, fill=COLOR_TEXT_DIM),
-                            min_width=8.5,
+                            rio.Text(item.original_reference_date.strftime("%d-%b-%Y"), font_size=0.85, font_weight="bold"),
+                            rio.Text(f"Recur: {item.recurring_reference_date.strftime('%d-%b')}", font_size=0.7, fill=COLOR_TEXT_DIM),
+                            min_width=8.0,
                             spacing=0.02,
                         ),
                         # Actual Trading Date
-                        rio.Text(item.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.88, min_width=7.5),
+                        rio.Text(item.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.85, min_width=7.0),
                         # Ref High
-                        rio.Text(f"₹{item.reference_high:,.2f}", font_size=0.9, font_weight="bold", min_width=6.5),
+                        rio.Text(f"₹{item.reference_high:,.2f}", font_size=0.88, font_weight="bold", min_width=5.8),
+                        # Ref Low
+                        rio.Text(f"₹{item.reference_low:,.2f}", font_size=0.88, fill=COLOR_TEXT_MUTED, min_width=5.8),
                         # Current Price
-                        rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=0.98, min_width=6.5),
+                        rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=0.92, min_width=6.0),
                         # Price Mode Badge
                         rio.Card(
                             rio.Text(
                                 item.price_type.value,
-                                font_size=0.68,
+                                font_size=0.65,
                                 font_weight="bold",
                                 fill=price_badge_col,
-                                margin_x=0.35,
-                                margin_y=0.1,
+                                margin_x=0.3,
+                                margin_y=0.08,
                             ),
-                            corner_radius=0.25,
+                            corner_radius=0.2,
                             color="hud",
-                            min_width=4.2,
+                            min_width=3.8,
                         ),
                         # % Change
                         rio.Text(
                             f"{item.percentage_change:+.2f}%",
                             font_weight="bold",
-                            font_size=0.98,
+                            font_size=0.92,
                             fill=chg_col,
-                            min_width=5.5,
+                            min_width=5.2,
                         ),
                         # Bucket Chip
                         rio.Card(
                             rio.Text(
                                 item.bucket,
-                                font_size=0.78,
+                                font_size=0.75,
                                 font_weight="bold",
                                 fill=bucket_col,
-                                margin_x=0.4,
-                                margin_y=0.15,
+                                margin_x=0.35,
+                                margin_y=0.12,
                             ),
                             corner_radius=0.25,
                             color="hud",
-                            min_width=9.0,
+                            min_width=8.5,
                         ),
                         rio.Spacer(),
-                        # Action Button
-                        rio.Button(
-                            "Chart",
-                            icon="material/show-chart",
-                            shape="rounded",
-                            style="minor",
-                            color="primary",
-                            min_height=2.0,
-                            min_width=4.5,
-                            on_press=lambda s=sym: self.on_navigate("stock_detail", s),
+                        # Action Buttons (Quick '+' Add Cycle and Chart)
+                        rio.Row(
+                            rio.Button(
+                                "+",
+                                shape="circle",
+                                style="major",
+                                color="success",
+                                min_height=1.9,
+                                min_width=1.9,
+                                on_press=lambda s=sym, c=comp: self._open_quick_add(s, c),
+                            ),
+                            rio.Button(
+                                "Chart",
+                                icon="material/show-chart",
+                                shape="rounded",
+                                style="minor",
+                                color="primary",
+                                min_height=1.9,
+                                min_width=4.2,
+                                on_press=lambda s=sym: self.on_navigate("stock_detail", s),
+                            ),
+                            spacing=0.25,
+                            align_y=0.5,
+                            min_width=7.0,
                         ),
-                        spacing=0.4,
+                        spacing=0.35,
                         align_y=0.5,
                         margin_x=0.7,
                         margin_y=0.35,
@@ -616,11 +730,93 @@ class DashboardView(rio.Component):
                 grow_x=True,
             )
 
-        return rio.Column(
+        page_layout = rio.Column(
             header_content,
+            toast_banner if toast_banner else rio.Spacer(),
             metrics_layout,
             toolbar_card,
             data_content,
             spacing=0.6 if is_mobile else 0.8,
             grow_x=True,
         )
+
+        # Centered Quick Add Cycle Modal Dialog Box (Overlay)
+        if self.quick_add_stock_symbol is not None:
+            quick_add_dialog = rio.Overlay(
+                rio.Card(
+                    rio.Card(
+                        rio.Column(
+                            rio.Row(
+                                rio.Icon("material/add-circle", fill=COLOR_UP_STRONG, min_width=1.8, min_height=1.8),
+                                rio.Column(
+                                    rio.Text(
+                                        "Add New Research Cycle",
+                                        font_size=1.2 if is_mobile else 1.4,
+                                        font_weight="bold",
+                                    ),
+                                    rio.Text(f"{self.quick_add_stock_symbol} ({self.quick_add_company_name})", font_size=0.95, fill=COLOR_TEXT_MUTED),
+                                    spacing=0.04,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                            ),
+                            rio.Separator(),
+                            rio.TextInput(
+                                label="Research Anchor Date (e.g. 10-Jan-2018, 2018-01-10)",
+                                text=self.bind().quick_add_date_str,
+                                min_width=16.0 if is_mobile else 22.0,
+                                grow_x=True,
+                            ),
+                            rio.Text(self.quick_add_error, font_size=0.85, font_weight="bold", fill=COLOR_DOWN_STRONG) if self.quick_add_error else rio.Spacer(),
+                            rio.Row(
+                                rio.Button(
+                                    "Cancel",
+                                    icon="material/close",
+                                    shape="rounded",
+                                    style="minor",
+                                    color="danger",
+                                    min_height=2.4,
+                                    min_width=6.5,
+                                    grow_x=is_mobile,
+                                    on_press=self._close_quick_add,
+                                ),
+                                rio.Spacer(),
+                                rio.Button(
+                                    "Register Cycle",
+                                    icon="material/check",
+                                    shape="rounded",
+                                    style="major",
+                                    color="success",
+                                    min_height=2.4,
+                                    grow_x=is_mobile,
+                                    is_loading=self.is_submitting_cycle,
+                                    on_press=self._on_confirm_quick_add,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                                grow_x=True,
+                            ),
+                            spacing=0.6,
+                            margin=1.0,
+                            grow_x=True,
+                        ),
+                        corner_radius=0.6,
+                        color="neutral",
+                        min_width=22.0 if not is_mobile else 18.0,
+                        align_x=0.5,
+                        align_y=0.5,
+                    ),
+                    color="hud",
+                    align_x=0.5,
+                    align_y=0.5,
+                    grow_x=True,
+                    grow_y=True,
+                )
+            )
+            return rio.Column(
+                page_layout,
+                quick_add_dialog,
+                grow_x=True,
+            )
+
+        return page_layout

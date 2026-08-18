@@ -1,4 +1,4 @@
-"""Manage Stocks and Cycles component with debounced autocomplete, deletion confirmation modals, quick '+' cycle additions, and adaptive light/dark typography."""
+"""Manage Stocks and Cycles component with centered modal dialogs, dimmed backdrop, '+' quick cycle addition, and red cancel buttons."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class ManageCyclesView(rio.Component):
-    """Allows registering new stocks/cycles, quick cycle addition via '+', deletion confirmation modals, and tracking management."""
+    """Allows registering new stocks/cycles, quick cycle addition via '+', centered deletion modals, and tracking management."""
 
     on_navigate: Callable[[str, Optional[str]], None]
     stock_input: str = ""
@@ -87,7 +87,7 @@ class ManageCyclesView(rio.Component):
                 query=raw_sym,
                 reference_date=parsed_dt,
             )
-            self.feedback_message = f"Successfully registered {stock.symbol} ({stock.company_name}) Cycle {cycle.cycle_number} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
+            self.feedback_message = f"Stock Added: {stock.symbol} ({stock.company_name}) Cycle {cycle.cycle_number} registered (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
             self.feedback_is_error = False
             self.stock_input = ""
             self.date_input_str = ""
@@ -141,7 +141,7 @@ class ManageCyclesView(rio.Component):
                 query=self.quick_add_stock_symbol,
                 reference_date=parsed_dt,
             )
-            self.feedback_message = f"Successfully added Cycle {cycle.cycle_number} to {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
+            self.feedback_message = f"Cycle Added: Successfully added Cycle {cycle.cycle_number} to {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
             self.feedback_is_error = False
             self._close_quick_add()
         except Exception as e:
@@ -174,11 +174,11 @@ class ManageCyclesView(rio.Component):
         container = ServiceContainer.get()
         if self.pending_delete_type == "cycle" and self.pending_delete_id is not None:
             container.cycle_service.delete_cycle(self.pending_delete_id)
-            self.feedback_message = f"Successfully deleted {self.pending_delete_name}."
+            self.feedback_message = f"Deleted Successfully: {self.pending_delete_name} removed."
             self.feedback_is_error = False
         elif self.pending_delete_type == "stock" and self.pending_delete_id is not None:
             container.cycle_service.delete_stock(self.pending_delete_id)
-            self.feedback_message = f"Successfully removed {self.pending_delete_name} and all associated cycles."
+            self.feedback_message = f"Deleted Successfully: {self.pending_delete_name} and all associated cycles removed."
             self.feedback_is_error = False
 
         self._cancel_delete()
@@ -205,127 +205,6 @@ class ManageCyclesView(rio.Component):
             align_x=0.0,
             grow_x=True,
         )
-
-        # Deletion Confirmation Modal Overlay Card
-        modal_banner: Optional[rio.Component] = None
-        if self.pending_delete_type and self.pending_delete_id is not None:
-            modal_banner = rio.Card(
-                rio.Column(
-                    rio.Row(
-                        rio.Icon("material/warning", fill=COLOR_DOWN_STRONG, min_width=1.6, min_height=1.6),
-                        rio.Column(
-                            rio.Text(
-                                f"Confirm Deletion — {self.pending_delete_name}",
-                                font_size=1.1 if is_mobile else 1.25,
-                                font_weight="bold",
-                                fill=COLOR_DOWN_STRONG,
-                            ),
-                            rio.Text(self.pending_delete_details, font_size=0.8 if is_mobile else 0.9, fill=COLOR_TEXT_MUTED),
-                            spacing=0.02,
-                        ),
-                        spacing=0.4,
-                        align_y=0.5,
-                        align_x=0.0,
-                    ),
-                    rio.Separator(),
-                    rio.Row(
-                        rio.Button(
-                            "Cancel",
-                            shape="rounded",
-                            style="minor",
-                            color="neutral",
-                            min_height=2.2,
-                            grow_x=is_mobile,
-                            on_press=self._cancel_delete,
-                        ),
-                        rio.Button(
-                            "Confirm & Permanently Delete",
-                            icon="material/delete-forever",
-                            shape="rounded",
-                            style="major",
-                            color="danger",
-                            min_height=2.2,
-                            grow_x=is_mobile,
-                            on_press=self._confirm_delete,
-                        ),
-                        spacing=0.4,
-                        align_y=0.5,
-                        align_x=1.0 if not is_mobile else 0.5,
-                        grow_x=True,
-                    ),
-                    spacing=0.4,
-                    margin=0.8,
-                    grow_x=True,
-                ),
-                corner_radius=0.5,
-                color="hud",
-                margin_x=0.4 if is_mobile else 1.2,
-                grow_x=True,
-            )
-
-        # Quick Add Cycle Modal Overlay Card (triggered by '+' on a specific stock)
-        quick_add_modal: Optional[rio.Component] = None
-        if self.quick_add_stock_id is not None:
-            quick_add_modal = rio.Card(
-                rio.Column(
-                    rio.Row(
-                        rio.Icon("material/add-circle", fill=rio.Color.from_hex("#10B981"), min_width=1.6, min_height=1.6),
-                        rio.Column(
-                            rio.Text(
-                                f"Add New Research Cycle to {self.quick_add_stock_symbol}",
-                                font_size=1.1 if is_mobile else 1.25,
-                                font_weight="bold",
-                            ),
-                            rio.Text(f"{self.quick_add_stock_name} — enter the reference date for the new cycle", font_size=0.8 if is_mobile else 0.9, fill=COLOR_TEXT_MUTED),
-                            spacing=0.02,
-                        ),
-                        spacing=0.4,
-                        align_y=0.5,
-                        align_x=0.0,
-                    ),
-                    rio.Separator(),
-                    rio.FlowContainer(
-                        rio.TextInput(
-                            label="Research Anchor Date (e.g. 10-Jan-2018, 2018-01-10)",
-                            text=self.bind().quick_add_date_str,
-                            min_width=16.0 if is_mobile else 22.0,
-                            grow_x=True,
-                        ),
-                        rio.Button(
-                            "Register Cycle",
-                            icon="material/check",
-                            shape="rounded",
-                            style="major",
-                            color="success",
-                            min_height=2.4,
-                            grow_x=is_mobile,
-                            is_loading=self.is_submitting,
-                            on_press=self._on_confirm_quick_add,
-                        ),
-                        rio.Button(
-                            "Cancel",
-                            shape="rounded",
-                            style="minor",
-                            color="neutral",
-                            min_height=2.4,
-                            grow_x=is_mobile,
-                            on_press=self._close_quick_add,
-                        ),
-                        spacing=0.4,
-                        row_spacing=0.3,
-                        column_spacing=0.4,
-                        align_y=0.5,
-                        grow_x=True,
-                    ),
-                    spacing=0.4,
-                    margin=0.8,
-                    grow_x=True,
-                ),
-                corner_radius=0.5,
-                color="hud",
-                margin_x=0.4 if is_mobile else 1.2,
-                grow_x=True,
-            )
 
         # Left-aligned Section Title Row
         form_title_row = rio.Row(
@@ -577,7 +456,7 @@ class ManageCyclesView(rio.Component):
                             ),
                             rio.Spacer(),
                             rio.Button(
-                                "Add Cycle",
+                                "+ Add Cycle",
                                 icon="material/add",
                                 shape="rounded",
                                 style="major",
@@ -676,13 +555,166 @@ class ManageCyclesView(rio.Component):
                 )
                 stock_cards.append(card)
 
-        return rio.Column(
+        # Base Page Content
+        page_layout = rio.Column(
             header,
-            modal_banner if modal_banner else rio.Spacer(),
-            quick_add_modal if quick_add_modal else rio.Spacer(),
             form_card,
             *stock_cards,
             spacing=0.6 if is_mobile else 0.8,
             grow_x=True,
             margin_bottom=1.5,
         )
+
+        # Centered Full-Screen Dimmed Backdrop Modals
+        if self.pending_delete_type and self.pending_delete_id is not None:
+            # Centered Deletion Modal Dialog Box
+            deletion_modal = rio.Overlay(
+                rio.Card(
+                    rio.Card(
+                        rio.Column(
+                            rio.Row(
+                                rio.Icon("material/warning", fill=COLOR_DOWN_STRONG, min_width=1.8, min_height=1.8),
+                                rio.Column(
+                                    rio.Text(
+                                        f"Confirm Deletion",
+                                        font_size=1.2 if is_mobile else 1.4,
+                                        font_weight="bold",
+                                        fill=COLOR_DOWN_STRONG,
+                                    ),
+                                    rio.Text(self.pending_delete_name, font_size=1.0, font_weight="bold"),
+                                    spacing=0.04,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                            ),
+                            rio.Separator(),
+                            rio.Text(self.pending_delete_details, font_size=0.88, fill=COLOR_TEXT_MUTED),
+                            rio.Row(
+                                rio.Button(
+                                    "Cancel",
+                                    icon="material/close",
+                                    shape="rounded",
+                                    style="minor",
+                                    color="danger",
+                                    min_height=2.4,
+                                    min_width=6.5,
+                                    grow_x=is_mobile,
+                                    on_press=self._cancel_delete,
+                                ),
+                                rio.Spacer(),
+                                rio.Button(
+                                    "Confirm & Permanently Delete",
+                                    icon="material/delete-forever",
+                                    shape="rounded",
+                                    style="major",
+                                    color="danger",
+                                    min_height=2.4,
+                                    grow_x=is_mobile,
+                                    on_press=self._confirm_delete,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                                grow_x=True,
+                            ),
+                            spacing=0.6,
+                            margin=1.0,
+                            grow_x=True,
+                        ),
+                        corner_radius=0.6,
+                        color="neutral",
+                        min_width=22.0 if not is_mobile else 18.0,
+                        align_x=0.5,
+                        align_y=0.5,
+                    ),
+                    color="hud",
+                    align_x=0.5,
+                    align_y=0.5,
+                    grow_x=True,
+                    grow_y=True,
+                )
+            )
+            return rio.Column(
+                page_layout,
+                deletion_modal,
+                grow_x=True,
+            )
+
+        if self.quick_add_stock_id is not None:
+            # Centered Quick Add Cycle Modal Dialog Box
+            quick_add_modal = rio.Overlay(
+                rio.Card(
+                    rio.Card(
+                        rio.Column(
+                            rio.Row(
+                                rio.Icon("material/add-circle", fill=COLOR_UP_STRONG, min_width=1.8, min_height=1.8),
+                                rio.Column(
+                                    rio.Text(
+                                        f"Add New Research Cycle",
+                                        font_size=1.2 if is_mobile else 1.4,
+                                        font_weight="bold",
+                                    ),
+                                    rio.Text(f"{self.quick_add_stock_symbol} ({self.quick_add_stock_name})", font_size=0.95, fill=COLOR_TEXT_MUTED),
+                                    spacing=0.04,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                            ),
+                            rio.Separator(),
+                            rio.TextInput(
+                                label="Research Anchor Date (e.g. 10-Jan-2018, 2018-01-10)",
+                                text=self.bind().quick_add_date_str,
+                                min_width=16.0 if is_mobile else 22.0,
+                                grow_x=True,
+                            ),
+                            rio.Row(
+                                rio.Button(
+                                    "Cancel",
+                                    icon="material/close",
+                                    shape="rounded",
+                                    style="minor",
+                                    color="danger",
+                                    min_height=2.4,
+                                    min_width=6.5,
+                                    grow_x=is_mobile,
+                                    on_press=self._close_quick_add,
+                                ),
+                                rio.Spacer(),
+                                rio.Button(
+                                    "Register Cycle",
+                                    icon="material/check",
+                                    shape="rounded",
+                                    style="major",
+                                    color="success",
+                                    min_height=2.4,
+                                    grow_x=is_mobile,
+                                    is_loading=self.is_submitting,
+                                    on_press=self._on_confirm_quick_add,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                                grow_x=True,
+                            ),
+                            spacing=0.6,
+                            margin=1.0,
+                            grow_x=True,
+                        ),
+                        corner_radius=0.6,
+                        color="neutral",
+                        min_width=22.0 if not is_mobile else 18.0,
+                        align_x=0.5,
+                        align_y=0.5,
+                    ),
+                    color="hud",
+                    align_x=0.5,
+                    align_y=0.5,
+                    grow_x=True,
+                    grow_y=True,
+                )
+            )
+            return rio.Column(
+                page_layout,
+                quick_add_modal,
+                grow_x=True,
+            )
+
+        return page_layout

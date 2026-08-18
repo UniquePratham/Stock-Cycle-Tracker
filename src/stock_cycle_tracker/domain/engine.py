@@ -94,13 +94,15 @@ class CycleEngine:
             recurring_ref_date, known_trading_days=known_dates
         )
 
-        # Extract Reference High
+        # Extract Reference High and Reference Low
         ref_bar = ohlc_by_date.get(actual_trading_date)
         if ref_bar is not None:
             ref_high = float(ref_bar.high)
+            ref_low = float(ref_bar.low)
         else:
             # Fallback if no matching bar in slice
             ref_high = current_price
+            ref_low = current_price
 
         # Percentage change relative to Reference High
         if ref_high > 0:
@@ -128,6 +130,7 @@ class CycleEngine:
             actual_reference_trading_date=actual_trading_date,
             exchange=stock.preferred_exchange.value,
             reference_high=round(ref_high, 2),
+            reference_low=round(ref_low, 2),
             current_price=round(current_price, 2),
             price_type=price_type,
             calculation_date=calc_date,

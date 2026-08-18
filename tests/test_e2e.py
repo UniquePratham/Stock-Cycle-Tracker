@@ -236,14 +236,15 @@ def test_scenario_6_excel_import_and_export(e2e_harness):
     wb = openpyxl.load_workbook(io.BytesIO(exported_bytes))
     ws = wb.active
 
-    assert ws.max_column == 18
+    assert ws.max_column == 19
     assert ws.cell(row=1, column=1).value == "S.No."
     assert ws.cell(row=1, column=2).value == "Stock Name"
     assert ws.cell(row=1, column=9).value == "Reference High"
-    assert ws.cell(row=1, column=10).value == "Current Price"
-    assert ws.cell(row=1, column=11).value == "Price Type"
-    assert ws.cell(row=1, column=13).value == "% Change"
-    assert ws.cell(row=1, column=14).value == "Bucket"
+    assert ws.cell(row=1, column=10).value == "Reference Low"
+    assert ws.cell(row=1, column=11).value == "Current Price"
+    assert ws.cell(row=1, column=12).value == "Price Type"
+    assert ws.cell(row=1, column=14).value == "% Change"
+    assert ws.cell(row=1, column=15).value == "Bucket"
 
 
 def test_scenario_7_market_status_price_modes(e2e_harness):

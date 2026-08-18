@@ -97,6 +97,7 @@ class CycleAnalysis:
     actual_reference_trading_date: date
     exchange: str
     reference_high: float
+    reference_low: float
     current_price: float
     price_type: PriceType
     calculation_date: date
