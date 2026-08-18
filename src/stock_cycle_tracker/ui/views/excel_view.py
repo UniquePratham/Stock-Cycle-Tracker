@@ -1,4 +1,4 @@
-"""Excel Import and Export view component with native file upload, Google Docs URL support, and zero-overflow mobile styling."""
+"""Excel Import and Export view component with native file upload, Google Docs URL support, browser download dialog, and desktop/mobile typography."""
 
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ class ExcelView(rio.Component):
     validation_result: Optional[ExcelImportResult] = None
     status_message: str = ""
     export_message: str = ""
+    is_exporting: bool = False
 
     async def _on_pick_file(self) -> None:
         try:
@@ -85,16 +86,31 @@ class ExcelView(rio.Component):
         self.uploaded_file_name = ""
         self.url_input = ""
 
-    def _on_export_excel(self) -> None:
+    async def _on_export_excel(self) -> None:
+        self.is_exporting = True
+        self.export_message = "Generating Excel report..."
+        await self.force_refresh()
+
         container = ServiceContainer.get()
         analyses = container.cycle_service.get_dashboard_analyses()
         if not analyses:
             self.export_message = "No active cycles to export. Database is currently empty."
+            self.is_exporting = False
             return
 
-        out_path = Path("Stock_Cycle_Analysis_Export.xlsx")
-        container.excel_service.export_analyses_to_excel(analyses, out_path)
-        self.export_message = f"Export generated: {out_path.resolve()}"
+        try:
+            content_bytes = container.excel_service.export_analyses_to_excel(analyses)
+            await self.session.save_file(
+                file_contents=content_bytes,
+                file_name="Stock_Cycle_Analysis_Export.xlsx",
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            self.export_message = "Excel report generated and downloaded to your device!"
+        except Exception as e:
+            self.export_message = f"Export failed: {e}"
+        finally:
+            self.is_exporting = False
+            await self.force_refresh()
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
@@ -102,42 +118,58 @@ class ExcelView(rio.Component):
         all_cycles = container.repository.list_all_cycles()
         total_cycles_count = len(all_cycles)
 
-        # Header Title
-        header = rio.FlowContainer(
+        # Page Header
+        header = rio.Column(
+            rio.Text(
+                "Excel Ingestion & Analytical Export",
+                font_size=1.3 if is_mobile else 1.8,
+                font_weight="bold",
+                fill=COLOR_TEXT_PRIMARY,
+            ),
+            rio.Text(
+                "Upload a local spreadsheet, import from Google Sheets link, or export full calculation reports",
+                font_size=0.78 if is_mobile else 0.95,
+                fill=COLOR_TEXT_MUTED,
+            ),
+            spacing=0.08,
+            margin_x=0.4 if is_mobile else 1.2,
+            margin_top=0.2,
+            align_x=0.0,
+            grow_x=True,
+        )
+
+        # Section 1: Ingestion Card
+        ingest_title_row = rio.Row(
+            rio.Icon(
+                "material/upload-file",
+                fill=rio.Color.from_hex("#3B82F6"),
+                min_width=1.3 if is_mobile else 1.6,
+                min_height=1.3 if is_mobile else 1.6,
+            ),
             rio.Column(
                 rio.Text(
-                    "Excel Ingestion & Export",
-                    font_size=1.3 if is_mobile else 1.6,
+                    "Bulk Ingest Research Dates (.xlsx / Google Sheets)",
+                    font_size=1.0 if is_mobile else 1.2,
                     font_weight="bold",
                     fill=COLOR_TEXT_PRIMARY,
                 ),
                 rio.Text(
-                    "Upload spreadsheet, import Google Sheets link, or export full report",
-                    font_size=0.78 if is_mobile else 0.88,
+                    "Required columns: 'Stock Name' and 'Reference Date' (e.g. 10-Jan-2014)",
+                    font_size=0.75 if is_mobile else 0.85,
                     fill=COLOR_TEXT_MUTED,
                 ),
-                spacing=0.1,
+                spacing=0.02,
+                align_x=0.0,
             ),
-            spacing=1.0,
+            spacing=0.4 if is_mobile else 0.5,
             align_y=0.5,
-            margin_x=0.6 if is_mobile else 1.2,
-            margin_top=0.2,
-            grow_x=True,
+            align_x=0.0,
+            grow_x=False,
         )
 
-        # Ingestion Card
         upload_card = rio.Card(
             rio.Column(
-                rio.Row(
-                    rio.Icon("material/upload-file", fill=rio.Color.from_hex("#3B82F6"), min_width=1.2 if is_mobile else 1.4, min_height=1.2 if is_mobile else 1.4),
-                    rio.Column(
-                        rio.Text("Bulk Ingest Research Dates", font_size=0.95 if is_mobile else 1.1, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                        rio.Text("Required: 'Stock Name' and 'Reference Date'", font_size=0.72 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
-                        spacing=0.03,
-                    ),
-                    spacing=0.4 if is_mobile else 0.6,
-                    align_y=0.5,
-                ),
+                ingest_title_row,
                 rio.Separator(),
                 # Method A: Direct File Upload
                 rio.FlowContainer(
@@ -147,7 +179,7 @@ class ExcelView(rio.Component):
                         shape="rounded",
                         style="major",
                         color="primary",
-                        min_height=2.2,
+                        min_height=2.2 if is_mobile else 2.6,
                         grow_x=is_mobile,
                         on_press=self._on_pick_file,
                     ),
@@ -157,7 +189,7 @@ class ExcelView(rio.Component):
                         shape="rounded",
                         style="minor",
                         color="neutral",
-                        min_height=2.2,
+                        min_height=2.2 if is_mobile else 2.6,
                         grow_x=is_mobile,
                         on_press=self._on_use_sample_path,
                     ),
@@ -169,16 +201,16 @@ class ExcelView(rio.Component):
                     grow_x=True,
                 ),
                 rio.Text(
-                    f"Selected: {self.uploaded_file_name}" if self.uploaded_file_name else "No file uploaded yet",
-                    font_size=0.78 if is_mobile else 0.85,
+                    f"Selected File: {self.uploaded_file_name}" if self.uploaded_file_name else "No file uploaded yet",
+                    font_size=0.8 if is_mobile else 0.9,
                     fill=COLOR_UP_STRONG if self.uploaded_file_name else COLOR_TEXT_DIM,
                 ),
                 # Method B: Google Docs / Sheets URL Ingestion
                 rio.FlowContainer(
                     rio.TextInput(
-                        label="Google Sheets Share Link / XLSX URL",
+                        label="Google Sheets Public Share Link / XLSX URL",
                         text=self.bind().url_input,
-                        min_width=12.0 if is_mobile else 16.0,
+                        min_width=12.0 if is_mobile else 20.0,
                         grow_x=True,
                     ),
                     rio.Button(
@@ -187,7 +219,7 @@ class ExcelView(rio.Component):
                         shape="rounded",
                         style="major",
                         color="primary",
-                        min_height=2.2,
+                        min_height=2.2 if is_mobile else 2.6,
                         grow_x=is_mobile,
                         on_press=self._on_import_from_url,
                     ),
@@ -200,17 +232,18 @@ class ExcelView(rio.Component):
                 ),
                 rio.Text(
                     self.status_message,
-                    font_size=0.8,
+                    font_size=0.82 if is_mobile else 0.92,
                     font_weight="bold",
                     fill=COLOR_UP_STRONG if "successfully" in self.status_message.lower() or "parsed" in self.status_message.lower() else rio.Color.from_hex("#3B82F6"),
                 ) if self.status_message else rio.Spacer(),
-                spacing=0.4 if is_mobile else 0.6,
+                spacing=0.5 if is_mobile else 0.7,
                 margin=0.6 if is_mobile else 1.0,
+                align_x=0.0,
                 grow_x=True,
             ),
             corner_radius=0.5,
             color="neutral",
-            margin_x=0.6 if is_mobile else 1.2,
+            margin_x=0.4 if is_mobile else 1.2,
             grow_x=True,
         )
 
@@ -222,10 +255,10 @@ class ExcelView(rio.Component):
                 for err in self.validation_result.invalid_rows:
                     err_rows.append(
                         rio.FlowContainer(
-                            rio.Text(f"Row {err.row_index}", font_weight="bold", font_size=0.8, fill=COLOR_TEXT_PRIMARY),
-                            rio.Text(f"Stock: {err.raw_stock}", font_size=0.8, fill=COLOR_TEXT_MUTED),
-                            rio.Text(f"Date: {err.raw_date}", font_size=0.8, fill=COLOR_TEXT_MUTED),
-                            rio.Text(err.error_message, font_size=0.8, fill=COLOR_DOWN_STRONG),
+                            rio.Text(f"Row {err.row_index}", font_weight="bold", font_size=0.8 if is_mobile else 0.9, fill=COLOR_TEXT_PRIMARY),
+                            rio.Text(f"Stock: {err.raw_stock}", font_size=0.8 if is_mobile else 0.9, fill=COLOR_TEXT_MUTED),
+                            rio.Text(f"Date: {err.raw_date}", font_size=0.8 if is_mobile else 0.9, fill=COLOR_TEXT_MUTED),
+                            rio.Text(err.error_message, font_size=0.8 if is_mobile else 0.9, fill=COLOR_DOWN_STRONG),
                             spacing=0.4,
                             row_spacing=0.2,
                             column_spacing=0.4,
@@ -235,15 +268,15 @@ class ExcelView(rio.Component):
                 validation_components.append(
                     rio.Card(
                         rio.Column(
-                            rio.Text("Validation Diagnostics & Errors", font_weight="bold", font_size=0.85, fill=COLOR_DOWN_STRONG),
+                            rio.Text("Validation Diagnostics & Errors", font_weight="bold", font_size=0.88 if is_mobile else 1.0, fill=COLOR_DOWN_STRONG),
                             *err_rows,
                             spacing=0.3,
-                            margin=0.6,
+                            margin=0.6 if is_mobile else 0.8,
                             grow_x=True,
                         ),
                         corner_radius=0.4,
                         color="hud",
-                        margin_x=0.6 if is_mobile else 1.2,
+                        margin_x=0.4 if is_mobile else 1.2,
                         grow_x=True,
                     )
                 )
@@ -253,8 +286,8 @@ class ExcelView(rio.Component):
                     rio.Card(
                         rio.FlowContainer(
                             rio.Column(
-                                rio.Text(f"Found {len(self.validation_result.valid_rows)} valid cycle records ready for import.", font_weight="bold", font_size=0.85, fill=COLOR_UP_STRONG),
-                                rio.Text("All tickers and historical dates verified.", font_size=0.72, fill=COLOR_TEXT_DIM),
+                                rio.Text(f"Found {len(self.validation_result.valid_rows)} valid cycle records ready for import.", font_weight="bold", font_size=0.9 if is_mobile else 1.05, fill=COLOR_UP_STRONG),
+                                rio.Text("All tickers and historical dates verified against NSE/BSE calendar.", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_DIM),
                                 spacing=0.03,
                             ),
                             rio.Button(
@@ -263,57 +296,92 @@ class ExcelView(rio.Component):
                                 shape="rounded",
                                 style="major",
                                 color="success",
-                                min_height=2.2,
+                                min_height=2.2 if is_mobile else 2.6,
                                 grow_x=is_mobile,
                                 on_press=self._on_confirm_import,
                             ),
-                            spacing=0.6,
-                            row_spacing=0.3,
-                            column_spacing=0.6,
+                            spacing=0.6 if is_mobile else 1.0,
+                            row_spacing=0.3 if is_mobile else 0.4,
+                            column_spacing=0.6 if is_mobile else 1.0,
                             justify="justify",
                             align_y=0.5,
-                            margin=0.6,
+                            margin=0.6 if is_mobile else 0.8,
                             grow_x=True,
                         ),
                         corner_radius=0.4,
                         color="neutral",
-                        margin_x=0.6 if is_mobile else 1.2,
+                        margin_x=0.4 if is_mobile else 1.2,
                         grow_x=True,
                     )
                 )
 
         # Section 2: Export Analytical Report Card
+        export_title_row = rio.Row(
+            rio.Icon(
+                "material/download",
+                fill=COLOR_UP_STRONG,
+                min_width=1.3 if is_mobile else 1.6,
+                min_height=1.3 if is_mobile else 1.6,
+            ),
+            rio.Column(
+                rio.Text(
+                    "Institutional Analytical Export",
+                    font_size=1.0 if is_mobile else 1.2,
+                    font_weight="bold",
+                    fill=COLOR_TEXT_PRIMARY,
+                ),
+                rio.Text(
+                    "Generates complete 18-column Excel workbook with prices, modes, cycles, and buckets",
+                    font_size=0.75 if is_mobile else 0.85,
+                    fill=COLOR_TEXT_MUTED,
+                ),
+                spacing=0.02,
+                align_x=0.0,
+            ),
+            spacing=0.4 if is_mobile else 0.5,
+            align_y=0.5,
+            align_x=0.0,
+            grow_x=False,
+        )
+
         export_card = rio.Card(
             rio.Column(
-                rio.Row(
-                    rio.Icon("material/download", fill=COLOR_UP_STRONG, min_width=1.2 if is_mobile else 1.4, min_height=1.2 if is_mobile else 1.4),
-                    rio.Column(
-                        rio.Text("Institutional Analytical Export", font_size=0.95 if is_mobile else 1.1, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                        rio.Text("Generates complete 18-column Excel workbook report", font_size=0.72 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
-                        spacing=0.03,
-                    ),
-                    spacing=0.4 if is_mobile else 0.6,
-                    align_y=0.5,
-                ),
+                export_title_row,
+                rio.Separator(),
                 rio.FlowContainer(
                     rio.Card(
-                        rio.Text(f"Cycles Available: {total_cycles_count}", font_size=0.75, font_weight="bold", fill=COLOR_TEXT_PRIMARY, margin_x=0.4, margin_y=0.15),
-                        corner_radius=0.25,
+                        rio.Text(
+                            f"Cycles Available: {total_cycles_count}",
+                            font_size=0.78 if is_mobile else 0.9,
+                            font_weight="bold",
+                            fill=COLOR_TEXT_PRIMARY,
+                            margin_x=0.5,
+                            margin_y=0.2,
+                        ),
+                        corner_radius=0.3,
                         color="hud",
                     ),
                     rio.Card(
-                        rio.Text("Format: .xlsx (18 Cols)", font_size=0.75, font_weight="bold", fill=COLOR_TEXT_MUTED, margin_x=0.4, margin_y=0.15),
-                        corner_radius=0.25,
+                        rio.Text(
+                            "Format: .xlsx (18 Columns)",
+                            font_size=0.78 if is_mobile else 0.9,
+                            font_weight="bold",
+                            fill=COLOR_TEXT_MUTED,
+                            margin_x=0.5,
+                            margin_y=0.2,
+                        ),
+                        corner_radius=0.3,
                         color="hud",
                     ),
                     rio.Button(
-                        "Generate Export",
+                        "Download Excel Report",
                         icon="material/download",
                         shape="rounded",
                         style="major",
                         color="success",
-                        min_height=2.2,
+                        min_height=2.2 if is_mobile else 2.6,
                         grow_x=is_mobile,
+                        is_loading=self.is_exporting,
                         on_press=self._on_export_excel,
                     ),
                     spacing=0.4 if is_mobile else 0.6,
@@ -325,17 +393,18 @@ class ExcelView(rio.Component):
                 ),
                 rio.Text(
                     self.export_message,
-                    font_size=0.8,
+                    font_size=0.82 if is_mobile else 0.92,
                     font_weight="bold",
-                    fill=COLOR_UP_STRONG,
+                    fill=COLOR_UP_STRONG if "downloaded" in self.export_message.lower() or "generated" in self.export_message.lower() else COLOR_DOWN_STRONG,
                 ) if self.export_message else rio.Spacer(),
-                spacing=0.4 if is_mobile else 0.6,
+                spacing=0.5 if is_mobile else 0.7,
                 margin=0.6 if is_mobile else 1.0,
+                align_x=0.0,
                 grow_x=True,
             ),
             corner_radius=0.5,
             color="neutral",
-            margin_x=0.6 if is_mobile else 1.2,
+            margin_x=0.4 if is_mobile else 1.2,
             grow_x=True,
         )
 

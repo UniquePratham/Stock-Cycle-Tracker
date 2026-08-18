@@ -7,6 +7,9 @@ from stock_cycle_tracker.domain.buckets import BucketClassifier, BucketConfig
 def test_positive_buckets():
     classifier = BucketClassifier()
 
+    assert classifier.classify(0.0) == "Upside 0–5%"
+    assert classifier.classify(2.5) == "Upside 0–5%"
+    assert classifier.classify(5.0) == "Upside 0–5%"
     assert classifier.classify(5.01) == "Upside 5–10%"
     assert classifier.classify(10.0) == "Upside 5–10%"
     assert classifier.classify(10.01) == "Upside 10–15%"
@@ -20,6 +23,9 @@ def test_positive_buckets():
 def test_negative_buckets():
     classifier = BucketClassifier()
 
+    assert classifier.classify(-0.01) == "Downside 0–5%"
+    assert classifier.classify(-2.5) == "Downside 0–5%"
+    assert classifier.classify(-5.0) == "Downside 0–5%"
     assert classifier.classify(-5.01) == "Downside 5–10%"
     assert classifier.classify(-10.0) == "Downside 5–10%"
     assert classifier.classify(-10.01) == "Downside 10–15%"
@@ -30,17 +36,8 @@ def test_negative_buckets():
     assert classifier.classify(-75.0) == "Downside >20%"
 
 
-def test_unclassified_range():
-    classifier = BucketClassifier()
-
-    assert classifier.classify(0.0) == "Within ±5% / Unclassified"
-    assert classifier.classify(5.0) == "Within ±5% / Unclassified"
-    assert classifier.classify(-5.0) == "Within ±5% / Unclassified"
-    assert classifier.classify(2.45) == "Within ±5% / Unclassified"
-    assert classifier.classify(-3.8) == "Within ±5% / Unclassified"
-
-
 def test_custom_config():
-    custom_cfg = BucketConfig(unclassified_label="Neutral")
+    custom_cfg = BucketConfig(threshold_low=3.0)
     classifier = BucketClassifier(config=custom_cfg)
-    assert classifier.classify(1.0) == "Neutral"
+    assert classifier.classify(2.0) == "Upside 0–3%"
+    assert classifier.classify(-2.0) == "Downside 0–3%"
