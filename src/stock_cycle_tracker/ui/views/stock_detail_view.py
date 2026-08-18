@@ -351,7 +351,11 @@ class StockDetailView(rio.Component):
 
         # Plotly Chart Card
         chart_card = rio.Card(
-            rio.Plot(fig, grow_x=True),
+            rio.Plot(
+                fig,
+                min_height=28.0 if not is_mobile else (36.0 if is_portrait else 22.0),
+                grow_x=True,
+            ),
             corner_radius=0.5,
             color="neutral",
             margin_x=0.4 if is_mobile else 1.2,
