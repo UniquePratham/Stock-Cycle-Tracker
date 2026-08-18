@@ -99,13 +99,14 @@ def create_cycle_plotly_figure(
             annotation_borderpad=3,
         )
 
-        # Anchor date vertical reference line
+        # Anchor date vertical reference line (use ISO string format for Plotly datetime compatibility)
+        ref_date_str = ref_trade_date.strftime("%Y-%m-%d") if hasattr(ref_trade_date, "strftime") else str(ref_trade_date)
         fig.add_vline(
-            x=ref_trade_date,
+            x=ref_date_str,
             line_dash="dot",
             line_color=col,
             line_width=1.5,
-            annotation_text=f"C{c_num} Ref: {ref_trade_date.strftime('%d-%b')}",
+            annotation_text=f"C{c_num} Ref: {ref_trade_date.strftime('%d-%b') if hasattr(ref_trade_date, 'strftime') else str(ref_trade_date)}",
             annotation_position="bottom left",
             annotation_font=dict(color=col, size=9 if is_mobile else 10, family="Inter, Roboto, sans-serif"),
             annotation_bgcolor="#1E293B" if is_dark_mode else "#F1F5F9",

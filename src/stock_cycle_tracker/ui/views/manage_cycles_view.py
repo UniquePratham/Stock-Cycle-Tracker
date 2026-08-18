@@ -1,7 +1,8 @@
-"""Manage Stocks and Cycles component with centered modal dialogs, dimmed backdrop, '+' quick cycle addition, and red cancel buttons."""
+"""Manage Stocks and Cycles component with centered modal dialogs, dimmed backdrop, '+' quick cycle addition, red cancel buttons, and 10s auto-dismissing toast notifications."""
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 from typing import Callable, Optional
 
@@ -20,14 +21,17 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class ManageCyclesView(rio.Component):
-    """Allows registering new stocks/cycles, quick cycle addition via '+', centered deletion modals, and tracking management."""
+    """Allows registering new stocks/cycles, quick cycle addition via '+', centered deletion modals, and tracking management with 10-second auto-dismissing toast notifications."""
 
     on_navigate: Callable[[str, Optional[str]], None]
     stock_input: str = ""
     date_input_str: str = ""
-    feedback_message: str = ""
-    feedback_is_error: bool = False
     is_submitting: bool = False
+
+    # 10-Second Toast Notification State
+    toast_message: str = ""
+    toast_is_error: bool = False
+    _toast_id: int = 0
 
     # Deletion Modal State
     pending_delete_type: Optional[str] = None  # "cycle" or "stock"
@@ -40,6 +44,20 @@ class ManageCyclesView(rio.Component):
     quick_add_stock_symbol: str = ""
     quick_add_stock_name: str = ""
     quick_add_date_str: str = ""
+    quick_add_error: str = ""
+
+    async def _show_toast(self, message: str, is_error: bool = False) -> None:
+        self.toast_message = message
+        self.toast_is_error = is_error
+        self._toast_id += 1
+        current_id = self._toast_id
+        self.force_refresh()
+
+        # Automatically dismiss toast after 10 seconds
+        await asyncio.sleep(10.0)
+        if current_id == self._toast_id:
+            self.toast_message = ""
+            self.force_refresh()
 
     def _on_stock_input_change(self, text: str) -> None:
         self.stock_input = text
@@ -50,36 +68,29 @@ class ManageCyclesView(rio.Component):
     async def _on_add_cycle(self) -> None:
         raw_sym = self.stock_input.strip()
         if not raw_sym:
-            self.feedback_message = "Please enter a valid stock ticker or company name (e.g. RELIANCE, TCS, Tata Motors)."
-            self.feedback_is_error = True
+            await self._show_toast("Please enter a valid stock ticker or company name.", is_error=True)
             return
 
         raw_date = self.date_input_str.strip()
         if not raw_date:
-            self.feedback_message = "Please enter a reference research date (e.g. 10-Jan-2014 or 2014-01-10)."
-            self.feedback_is_error = True
+            await self._show_toast("Please enter a reference research date (e.g. 10-Jan-2014 or 2014-01-10).", is_error=True)
             return
 
         container = ServiceContainer.get()
         parsed_dt = container.excel_service._parse_date(raw_date)
         if not parsed_dt:
-            self.feedback_message = f"Could not parse date '{raw_date}'. Please use DD-Mon-YYYY (e.g. 10-Jan-2014) or YYYY-MM-DD."
-            self.feedback_is_error = True
+            await self._show_toast(f"Could not parse date '{raw_date}'. Please use DD-Mon-YYYY or YYYY-MM-DD.", is_error=True)
             return
 
         if parsed_dt > date.today():
-            self.feedback_message = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) cannot be in the future."
-            self.feedback_is_error = True
+            await self._show_toast(f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) cannot be in the future.", is_error=True)
             return
 
         if parsed_dt.year < 1990:
-            self.feedback_message = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) must be after 1990."
-            self.feedback_is_error = True
+            await self._show_toast(f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) must be after 1990.", is_error=True)
             return
 
         self.is_submitting = True
-        self.feedback_message = "Resolving ticker and registering research cycle..."
-        self.feedback_is_error = False
         self.force_refresh()
 
         try:
@@ -87,13 +98,14 @@ class ManageCyclesView(rio.Component):
                 query=raw_sym,
                 reference_date=parsed_dt,
             )
-            self.feedback_message = f"Stock Added: {stock.symbol} ({stock.company_name}) Cycle {cycle.cycle_number} registered (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
-            self.feedback_is_error = False
             self.stock_input = ""
             self.date_input_str = ""
+            await self._show_toast(
+                f"Stock Added: {stock.symbol} ({stock.company_name}) Cycle {cycle.cycle_number} registered (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!",
+                is_error=False,
+            )
         except Exception as e:
-            self.feedback_message = f"Error adding cycle: {e}"
-            self.feedback_is_error = True
+            await self._show_toast(f"Error adding cycle: {e}", is_error=True)
         finally:
             self.is_submitting = False
             self.force_refresh()
@@ -104,49 +116,48 @@ class ManageCyclesView(rio.Component):
         self.quick_add_stock_symbol = symbol
         self.quick_add_stock_name = name
         self.quick_add_date_str = ""
-        self.feedback_message = ""
+        self.quick_add_error = ""
 
     def _close_quick_add(self) -> None:
         self.quick_add_stock_id = None
         self.quick_add_stock_symbol = ""
         self.quick_add_stock_name = ""
         self.quick_add_date_str = ""
+        self.quick_add_error = ""
 
     async def _on_confirm_quick_add(self) -> None:
         raw_date = self.quick_add_date_str.strip()
         if not raw_date:
-            self.feedback_message = "Please enter a research date for the new cycle."
-            self.feedback_is_error = True
+            self.quick_add_error = "Please enter a research date for the new cycle."
             return
 
         container = ServiceContainer.get()
         parsed_dt = container.excel_service._parse_date(raw_date)
         if not parsed_dt:
-            self.feedback_message = f"Could not parse date '{raw_date}'. Please use DD-Mon-YYYY (e.g. 15-Jul-2019) or YYYY-MM-DD."
-            self.feedback_is_error = True
+            self.quick_add_error = f"Could not parse date '{raw_date}'. Please use DD-Mon-YYYY or YYYY-MM-DD."
             return
 
         if parsed_dt > date.today():
-            self.feedback_message = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) cannot be in the future."
-            self.feedback_is_error = True
+            self.quick_add_error = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) cannot be in the future."
             return
 
         self.is_submitting = True
-        self.feedback_message = f"Adding new cycle to {self.quick_add_stock_symbol}..."
-        self.feedback_is_error = False
+        self.quick_add_error = ""
         self.force_refresh()
 
+        sym = self.quick_add_stock_symbol
         try:
             stock, cycle, analysis = container.cycle_service.add_stock_cycle(
-                query=self.quick_add_stock_symbol,
+                query=sym,
                 reference_date=parsed_dt,
             )
-            self.feedback_message = f"Cycle Added: Successfully added Cycle {cycle.cycle_number} to {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
-            self.feedback_is_error = False
             self._close_quick_add()
+            await self._show_toast(
+                f"Cycle Added: Successfully added Cycle {cycle.cycle_number} to {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!",
+                is_error=False,
+            )
         except Exception as e:
-            self.feedback_message = f"Error adding cycle: {e}"
-            self.feedback_is_error = True
+            self.quick_add_error = f"Error adding cycle: {e}"
         finally:
             self.is_submitting = False
             self.force_refresh()
@@ -170,18 +181,20 @@ class ManageCyclesView(rio.Component):
         self.pending_delete_name = ""
         self.pending_delete_details = ""
 
-    def _confirm_delete(self) -> None:
+    async def _confirm_delete(self) -> None:
         container = ServiceContainer.get()
-        if self.pending_delete_type == "cycle" and self.pending_delete_id is not None:
-            container.cycle_service.delete_cycle(self.pending_delete_id)
-            self.feedback_message = f"Deleted Successfully: {self.pending_delete_name} removed."
-            self.feedback_is_error = False
-        elif self.pending_delete_type == "stock" and self.pending_delete_id is not None:
-            container.cycle_service.delete_stock(self.pending_delete_id)
-            self.feedback_message = f"Deleted Successfully: {self.pending_delete_name} and all associated cycles removed."
-            self.feedback_is_error = False
+        deleted_name = self.pending_delete_name
+        del_type = self.pending_delete_type
+        del_id = self.pending_delete_id
 
         self._cancel_delete()
+
+        if del_type == "cycle" and del_id is not None:
+            container.cycle_service.delete_cycle(del_id)
+            await self._show_toast(f"Deleted Successfully: {deleted_name} removed.", is_error=False)
+        elif del_type == "stock" and del_id is not None:
+            container.cycle_service.delete_stock(del_id)
+            await self._show_toast(f"Deleted Successfully: {deleted_name} and all associated cycles removed.", is_error=False)
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
@@ -205,6 +218,46 @@ class ManageCyclesView(rio.Component):
             align_x=0.0,
             grow_x=True,
         )
+
+        # Floating 10-Second Toast Banner
+        toast_banner: Optional[rio.Component] = None
+        if self.toast_message:
+            toast_banner = rio.Card(
+                rio.Row(
+                    rio.Icon(
+                        "material/error" if self.toast_is_error else "material/check-circle",
+                        fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
+                        min_width=1.4,
+                        min_height=1.4,
+                    ),
+                    rio.Text(
+                        self.toast_message,
+                        font_weight="bold",
+                        font_size=0.9,
+                        fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
+                    ),
+                    rio.Spacer(),
+                    rio.Button(
+                        "",
+                        icon="material/close",
+                        shape="circle",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=1.6,
+                        min_width=1.6,
+                        on_press=lambda: setattr(self, "toast_message", ""),
+                    ),
+                    spacing=0.4,
+                    align_y=0.5,
+                    margin_x=0.8,
+                    margin_y=0.3,
+                    grow_x=True,
+                ),
+                corner_radius=0.4,
+                color="hud",
+                margin_x=0.4 if is_mobile else 1.2,
+                grow_x=True,
+            )
 
         # Left-aligned Section Title Row
         form_title_row = rio.Row(
@@ -292,12 +345,6 @@ class ManageCyclesView(rio.Component):
                 form_title_row,
                 rio.Separator(),
                 form_inputs,
-                rio.Text(
-                    self.feedback_message,
-                    font_size=0.82 if is_mobile else 0.92,
-                    font_weight="bold",
-                    fill=COLOR_DOWN_STRONG if self.feedback_is_error else COLOR_UP_STRONG,
-                ) if self.feedback_message else rio.Spacer(),
                 spacing=0.5 if is_mobile else 0.7,
                 margin=0.6 if is_mobile else 1.0,
                 align_x=0.0,
@@ -459,7 +506,7 @@ class ManageCyclesView(rio.Component):
                                 "+ Add Cycle",
                                 icon="material/add",
                                 shape="rounded",
-                                style="major",
+                                style="minor",
                                 color="success",
                                 min_height=1.9,
                                 on_press=lambda sid=stk_id, sym=stk_sym, name=stk_name: self._open_quick_add(sid, sym, name),
@@ -511,7 +558,7 @@ class ManageCyclesView(rio.Component):
                             "+ Add Cycle",
                             icon="material/add",
                             shape="rounded",
-                            style="major",
+                            style="minor",
                             color="success",
                             min_height=2.4,
                             on_press=lambda sid=stk_id, sym=stk_sym, name=stk_name: self._open_quick_add(sid, sym, name),
@@ -558,6 +605,7 @@ class ManageCyclesView(rio.Component):
         # Base Page Content
         page_layout = rio.Column(
             header,
+            toast_banner if toast_banner else rio.Spacer(),
             form_card,
             *stock_cards,
             spacing=0.6 if is_mobile else 0.8,
@@ -666,6 +714,7 @@ class ManageCyclesView(rio.Component):
                                 min_width=16.0 if is_mobile else 22.0,
                                 grow_x=True,
                             ),
+                            rio.Text(self.quick_add_error, font_size=0.85, font_weight="bold", fill=COLOR_DOWN_STRONG) if self.quick_add_error else rio.Spacer(),
                             rio.Row(
                                 rio.Button(
                                     "Cancel",

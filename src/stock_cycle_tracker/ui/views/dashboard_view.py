@@ -1,7 +1,8 @@
-"""Polished, modern Dashboard view component with Reference Low column, '+' quick add cycle modal, centered modal overlays, and adaptive light/dark typography."""
+"""Polished, modern Dashboard view component with Reference High/Low, compact '+' icon button, 10s auto-dismissing toast notifications, and strict 0>=Up / <0 Down counting."""
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 from typing import Callable, List, Optional
 
@@ -23,7 +24,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class DashboardView(rio.Component):
-    """Main Cycle Analysis Dashboard with Reference High/Low, '+' quick add cycle modal, zero horizontal scrollbar on PC and zero-scroll mobile cards."""
+    """Main Cycle Analysis Dashboard with Reference High/Low, compact '+' button, and 10s auto-dismissing toast notifications."""
 
     on_navigate: Callable[[str, Optional[str]], None]
     search_query: str = ""
@@ -31,7 +32,11 @@ class DashboardView(rio.Component):
     exchange_filter: str = "ALL"
     is_refreshing: bool = False
     status_message: str = ""
-    popup_toast: str = ""
+
+    # 10s Toast Notification State
+    toast_message: str = ""
+    toast_is_error: bool = False
+    _toast_id: int = 0
 
     # Quick Add Cycle Modal State (via '+' button on dashboard)
     quick_add_stock_symbol: Optional[str] = None
@@ -39,6 +44,19 @@ class DashboardView(rio.Component):
     quick_add_date_str: str = ""
     is_submitting_cycle: bool = False
     quick_add_error: str = ""
+
+    async def _show_toast(self, message: str, is_error: bool = False) -> None:
+        self.toast_message = message
+        self.toast_is_error = is_error
+        self._toast_id += 1
+        current_id = self._toast_id
+        self.force_refresh()
+
+        # Automatically dismiss toast after 10 seconds
+        await asyncio.sleep(10.0)
+        if current_id == self._toast_id:
+            self.toast_message = ""
+            self.force_refresh()
 
     def _get_analyses(self) -> List[CycleAnalysis]:
         container = ServiceContainer.get()
@@ -49,12 +67,12 @@ class DashboardView(rio.Component):
             q = self.search_query.strip().upper()
             analyses = [a for a in analyses if q in a.stock_symbol.upper() or q in a.company_name.upper()]
 
-        # Apply bucket filter
+        # Apply bucket filter (0% and above = UPSIDE, below 0% = DOWNSIDE)
         if self.bucket_filter != "ALL":
             if self.bucket_filter == "UPSIDE":
-                analyses = [a for a in analyses if "upside" in a.bucket.lower()]
+                analyses = [a for a in analyses if a.percentage_change >= 0.0]
             elif self.bucket_filter == "DOWNSIDE":
-                analyses = [a for a in analyses if "downside" in a.bucket.lower()]
+                analyses = [a for a in analyses if a.percentage_change < 0.0]
 
         # Apply exchange filter
         if self.exchange_filter != "ALL":
@@ -69,8 +87,9 @@ class DashboardView(rio.Component):
         container = ServiceContainer.get()
         container.cycle_service.get_dashboard_analyses(force_refresh=True)
         self.is_refreshing = False
-        self.status_message = "Market data successfully refreshed."
+        self.status_message = ""
         self.force_refresh()
+        await self._show_toast("Market data prices successfully refreshed.", is_error=False)
 
     def _open_quick_add(self, symbol: str, company: str) -> None:
         self.quick_add_stock_symbol = symbol
@@ -104,13 +123,17 @@ class DashboardView(rio.Component):
         self.quick_add_error = ""
         self.force_refresh()
 
+        sym = self.quick_add_stock_symbol
         try:
             stock, cycle, analysis = container.cycle_service.add_stock_cycle(
-                query=self.quick_add_stock_symbol,
+                query=sym,
                 reference_date=parsed_dt,
             )
-            self.popup_toast = f"Cycle Added: Successfully registered Cycle {cycle.cycle_number} for {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
             self._close_quick_add()
+            await self._show_toast(
+                f"Cycle Added: Successfully registered Cycle {cycle.cycle_number} for {stock.symbol} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!",
+                is_error=False,
+            )
         except Exception as e:
             self.quick_add_error = f"Error adding cycle: {e}"
         finally:
@@ -125,8 +148,10 @@ class DashboardView(rio.Component):
 
         total_stocks = len(set(a.stock_symbol for a in analyses))
         total_cycles = len(analyses)
-        upside_count = sum(1 for a in analyses if "upside" in a.bucket.lower())
-        downside_count = sum(1 for a in analyses if "downside" in a.bucket.lower())
+
+        # 0 and above = In Upside; Below 0 = In Downside
+        upside_count = sum(1 for a in analyses if a.percentage_change >= 0.0)
+        downside_count = sum(1 for a in analyses if a.percentage_change < 0.0)
 
         # Header Title Bar
         header_content: rio.Component
@@ -216,21 +241,33 @@ class DashboardView(rio.Component):
                 grow_x=True,
             )
 
-        # Success Popup Toast Banner (if any)
+        # Floating 10-Second Auto-Dismissing Toast Banner
         toast_banner: Optional[rio.Component] = None
-        if self.popup_toast:
+        if self.toast_message:
             toast_banner = rio.Card(
                 rio.Row(
-                    rio.Icon("material/check-circle", fill=COLOR_UP_STRONG, min_width=1.4, min_height=1.4),
-                    rio.Text(self.popup_toast, font_weight="bold", font_size=0.9, fill=COLOR_UP_STRONG),
+                    rio.Icon(
+                        "material/error" if self.toast_is_error else "material/check-circle",
+                        fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
+                        min_width=1.4,
+                        min_height=1.4,
+                    ),
+                    rio.Text(
+                        self.toast_message,
+                        font_weight="bold",
+                        font_size=0.9,
+                        fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
+                    ),
                     rio.Spacer(),
                     rio.Button(
-                        "Dismiss",
-                        shape="rounded",
+                        "",
+                        icon="material/close",
+                        shape="circle",
                         style="plain-text",
                         color="neutral",
-                        min_height=1.8,
-                        on_press=lambda: setattr(self, "popup_toast", ""),
+                        min_height=1.6,
+                        min_width=1.6,
+                        on_press=lambda: setattr(self, "toast_message", ""),
                     ),
                     spacing=0.4,
                     align_y=0.5,
@@ -280,11 +317,11 @@ class DashboardView(rio.Component):
                 color="neutral",
                 grow_x=True,
             ),
-            # Card 3: Upside
+            # Card 3: Upside (>= 0%)
             rio.Card(
                 rio.Column(
                     rio.Row(
-                        rio.Text("In Upside", font_size=0.85 if is_mobile else 0.95, font_weight="bold", fill=COLOR_TEXT_MUTED),
+                        rio.Text("In Upside (≥0%)", font_size=0.85 if is_mobile else 0.95, font_weight="bold", fill=COLOR_TEXT_MUTED),
                         rio.Spacer(),
                         rio.Icon("material/trending-up", fill=COLOR_UP_STRONG, min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
                         align_y=0.5,
@@ -297,11 +334,11 @@ class DashboardView(rio.Component):
                 color="neutral",
                 grow_x=True,
             ),
-            # Card 4: Downside
+            # Card 4: Downside (< 0%)
             rio.Card(
                 rio.Column(
                     rio.Row(
-                        rio.Text("In Downside", font_size=0.85 if is_mobile else 0.95, font_weight="bold", fill=COLOR_TEXT_MUTED),
+                        rio.Text("In Downside (<0%)", font_size=0.85 if is_mobile else 0.95, font_weight="bold", fill=COLOR_TEXT_MUTED),
                         rio.Spacer(),
                         rio.Icon("material/trending-down", fill=COLOR_DOWN_STRONG, min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
                         align_y=0.5,
@@ -527,7 +564,7 @@ class DashboardView(rio.Component):
                                 "+ Add Cycle",
                                 icon="material/add",
                                 shape="rounded",
-                                style="major",
+                                style="minor",
                                 color="success",
                                 min_height=2.0,
                                 grow_x=True,
@@ -581,7 +618,7 @@ class DashboardView(rio.Component):
                     rio.Text("% CHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=5.2),
                     rio.Text("BUCKET CLASSIFICATION", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.5),
                     rio.Spacer(),
-                    rio.Text("ACTIONS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.0),
+                    rio.Text("ACTIONS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.5),
                     spacing=0.35,
                     align_y=0.5,
                     margin_x=0.7,
@@ -685,15 +722,18 @@ class DashboardView(rio.Component):
                             min_width=8.5,
                         ),
                         rio.Spacer(),
-                        # Action Buttons (Quick '+' Add Cycle and Chart)
+                        # Action Buttons (Compact Round '+' Add Cycle button + Chart button)
                         rio.Row(
                             rio.Button(
-                                "+",
+                                "",
+                                icon="material/add",
                                 shape="circle",
-                                style="major",
+                                style="minor",
                                 color="success",
-                                min_height=1.9,
-                                min_width=1.9,
+                                min_height=2.0,
+                                min_width=2.0,
+                                grow_x=False,
+                                grow_y=False,
                                 on_press=lambda s=sym, c=comp: self._open_quick_add(s, c),
                             ),
                             rio.Button(
@@ -702,13 +742,15 @@ class DashboardView(rio.Component):
                                 shape="rounded",
                                 style="minor",
                                 color="primary",
-                                min_height=1.9,
-                                min_width=4.2,
+                                min_height=2.0,
+                                min_width=4.6,
+                                grow_x=False,
                                 on_press=lambda s=sym: self.on_navigate("stock_detail", s),
                             ),
-                            spacing=0.25,
+                            spacing=0.3,
                             align_y=0.5,
-                            min_width=7.0,
+                            grow_x=False,
+                            min_width=7.5,
                         ),
                         spacing=0.35,
                         align_y=0.5,
