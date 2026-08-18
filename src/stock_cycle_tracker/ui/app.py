@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional
 
 import rio
@@ -22,6 +23,9 @@ from stock_cycle_tracker.ui.views.dashboard_view import DashboardView
 from stock_cycle_tracker.ui.views.excel_view import ExcelView
 from stock_cycle_tracker.ui.views.manage_cycles_view import ManageCyclesView
 from stock_cycle_tracker.ui.views.stock_detail_view import StockDetailView
+
+ASSETS_DIR = Path(__file__).parent / "assets"
+FAVICON_PATH = ASSETS_DIR / "favicon.png"
 
 
 class RootComponent(rio.Component):
@@ -60,17 +64,29 @@ class RootComponent(rio.Component):
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
 
-        # Build Navbar Header
+        # Brand Icon component
+        brand_icon_component: rio.Component
+        if FAVICON_PATH.exists():
+            brand_icon_component = rio.Image(
+                FAVICON_PATH,
+                min_width=1.6 if is_mobile else 2.0,
+                min_height=1.6 if is_mobile else 2.0,
+                corner_radius=0.35,
+            )
+        else:
+            brand_icon_component = rio.Icon(
+                "material/candlestick-chart",
+                fill=rio.Color.from_hex("#3B82F6"),
+                min_width=1.6 if is_mobile else 2.0,
+                min_height=1.6 if is_mobile else 2.0,
+            )
+
+        # Responsive Navbar Header
         header_content: rio.Component
         if is_mobile:
             mobile_top_bar = rio.Row(
                 rio.Row(
-                    rio.Icon(
-                        "material/candlestick-chart",
-                        fill=rio.Color.from_hex("#3B82F6"),
-                        min_width=1.6,
-                        min_height=1.6,
-                    ),
+                    brand_icon_component,
                     rio.Column(
                         rio.Text(
                             "CYCLE TRACKER",
@@ -101,18 +117,18 @@ class RootComponent(rio.Component):
                 ),
                 rio.Button(
                     "",
-                    icon="material/close" if self.is_mobile_menu_open else "material/menu",
-                    style="major",
-                    color="primary",
+                    icon="material/menu" if not self.is_mobile_menu_open else "material/close",
                     shape="rounded",
-                    min_height=2.2,
-                    min_width=2.6,
+                    style="minor",
+                    color="neutral",
+                    min_height=2.0,
+                    min_width=2.4,
                     on_press=self._toggle_mobile_menu,
                 ),
                 spacing=0.3,
                 align_y=0.5,
-                margin_x=0.5,
-                margin_y=0.35,
+                margin_x=0.4,
+                margin_y=0.3,
                 grow_x=True,
             )
 
@@ -141,12 +157,7 @@ class RootComponent(rio.Component):
             # Desktop Header
             header_content = rio.Row(
                 rio.Row(
-                    rio.Icon(
-                        "material/candlestick-chart",
-                        fill=rio.Color.from_hex("#3B82F6"),
-                        min_width=2.0,
-                        min_height=2.0,
-                    ),
+                    brand_icon_component,
                     rio.Column(
                         rio.Text(
                             "STOCK CYCLE TRACKER",
@@ -158,7 +169,7 @@ class RootComponent(rio.Component):
                             font_size=0.75,
                             fill=COLOR_TEXT_MUTED,
                         ),
-                        spacing=0.05,
+                        spacing=0.03,
                     ),
                     spacing=0.5,
                     align_y=0.5,
@@ -171,22 +182,23 @@ class RootComponent(rio.Component):
                     self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
                     self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
                     self._build_nav_button("Alerts", "material/notifications", "alerts"),
-                    rio.Button(
-                        "Dark Mode" if self.is_dark_mode else "Light Mode",
-                        icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                        shape="rounded",
-                        style="major",
-                        color="primary",
-                        min_height=2.2,
-                        on_press=self._toggle_theme,
-                    ),
-                    spacing=0.4,
+                    spacing=0.3,
                     align_y=0.5,
                 ),
-                spacing=0.8,
+                rio.Spacer(),
+                rio.Button(
+                    "Dark Mode" if self.is_dark_mode else "Light Mode",
+                    icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                    shape="rounded",
+                    style="major",
+                    color="primary",
+                    min_height=2.2,
+                    on_press=self._toggle_theme,
+                ),
+                spacing=0.6,
                 align_y=0.5,
-                margin_x=0.8,
-                margin_y=0.4,
+                margin_x=1.2,
+                margin_y=0.45,
                 grow_x=True,
             )
 
@@ -228,11 +240,13 @@ class RootComponent(rio.Component):
 
 
 def build_app(db_path: Optional[str] = None) -> rio.App:
-    """Factory creating the configured Rio Application with custom dark theme."""
+    """Factory creating the configured Rio Application with custom dark theme and stock logo favicon."""
     ServiceContainer.get(db_path=db_path)
 
     return rio.App(
         build=RootComponent,
         name="Stock Cycle Tracker",
         theme=create_dark_theme(),
+        assets_dir=ASSETS_DIR,
+        icon=FAVICON_PATH if FAVICON_PATH.exists() else None,
     )
