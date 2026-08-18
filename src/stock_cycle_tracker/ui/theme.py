@@ -2,7 +2,21 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import rio
+
+# Configure Font with bundled local Inter font and Google Fonts fallback
+FONTS_DIR = Path(__file__).parent / "assets" / "fonts" / "Inter"
+INTER_FONT_PATH = FONTS_DIR / "Inter-Variable.ttf"
+
+if INTER_FONT_PATH.exists():
+    APP_FONT = rio.Font(regular=INTER_FONT_PATH, bold=INTER_FONT_PATH)
+else:
+    try:
+        APP_FONT = rio.Font.from_google_fonts("Inter")
+    except Exception:
+        APP_FONT = rio.Font.ROBOTO
 
 
 def create_dark_theme() -> rio.Theme:
@@ -21,6 +35,8 @@ def create_dark_theme() -> rio.Theme:
         corner_radius_small=0.4,
         corner_radius_medium=0.6,
         corner_radius_large=0.8,
+        font=APP_FONT,
+        monospace_font=rio.Font.ROBOTO_MONO,
     )
 
 
@@ -40,6 +56,8 @@ def create_light_theme() -> rio.Theme:
         corner_radius_small=0.4,
         corner_radius_medium=0.6,
         corner_radius_large=0.8,
+        font=APP_FONT,
+        monospace_font=rio.Font.ROBOTO_MONO,
     )
 
 
