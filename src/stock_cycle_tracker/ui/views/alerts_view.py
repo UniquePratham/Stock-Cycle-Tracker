@@ -1,4 +1,4 @@
-"""Alerts configuration and monitoring view component with debounced autocomplete, quick presets, left-aligned event cards, and zero-overflow layout."""
+"""Alerts configuration and monitoring view component with debounced autocomplete, quick presets, and adaptive light/dark typography."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from stock_cycle_tracker.ui.theme import (
     COLOR_SURFACE_CARD,
     COLOR_TEXT_DIM,
     COLOR_TEXT_MUTED,
-    COLOR_TEXT_PRIMARY,
     COLOR_UP_STRONG,
 )
 
@@ -88,7 +87,6 @@ class AlertsView(rio.Component):
                 "Cycle Alerts & Threshold Triggers",
                 font_size=1.3 if is_mobile else 1.8,
                 font_weight="bold",
-                fill=COLOR_TEXT_PRIMARY,
             ),
             rio.Text(
                 "Configure automated rules triggered by percentage moves relative to reference High or bucket shifts",
@@ -157,7 +155,6 @@ class AlertsView(rio.Component):
                     "Create Real-Time Alert Rule",
                     font_size=1.0 if is_mobile else 1.2,
                     font_weight="bold",
-                    fill=COLOR_TEXT_PRIMARY,
                 ),
                 rio.Text(
                     "Set triggers for percentage moves with debounced stock selection",
@@ -288,7 +285,7 @@ class AlertsView(rio.Component):
             grow_x=True,
         )
 
-        # Triggered Events Banner (Strict left-alignment)
+        # Triggered Events Banner
         triggered_cards: list[rio.Component] = []
         if triggered_events:
             triggered_cards.append(
@@ -316,7 +313,6 @@ class AlertsView(rio.Component):
                                     f"{evt.stock_symbol} (Cycle {evt.cycle_number}) — {evt.condition_summary}",
                                     font_weight="bold",
                                     font_size=0.9 if is_mobile else 1.05,
-                                    fill=COLOR_TEXT_PRIMARY,
                                 ),
                                 rio.Text(
                                     f"Current Value: {evt.current_value} | Triggered: {evt.triggered_at.strftime('%Y-%m-%d %H:%M')}",
@@ -346,7 +342,6 @@ class AlertsView(rio.Component):
                 "Configured Alert Rules",
                 font_size=1.1 if is_mobile else 1.35,
                 font_weight="bold",
-                fill=COLOR_TEXT_PRIMARY,
                 margin_x=0.4 if is_mobile else 1.2,
                 margin_top=0.4,
             )
@@ -404,7 +399,7 @@ class AlertsView(rio.Component):
                     row_content = rio.Column(
                         rio.Row(
                             rio.Row(
-                                rio.Text(alt.stock_symbol, font_weight="bold", font_size=1.05, fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(alt.stock_symbol, font_weight="bold", font_size=1.05),
                                 cycle_badge,
                                 status_badge,
                                 spacing=0.25,
@@ -447,7 +442,7 @@ class AlertsView(rio.Component):
                     row_content = rio.Row(
                         rio.Column(
                             rio.Row(
-                                rio.Text(alt.stock_symbol, font_weight="bold", font_size=1.2, fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(alt.stock_symbol, font_weight="bold", font_size=1.2),
                                 cycle_badge,
                                 status_badge,
                                 spacing=0.4,

@@ -1,4 +1,4 @@
-"""Manage Stocks and Cycles component with debounced autocomplete, full-width inputs, and zero-overflow layout."""
+"""Manage Stocks and Cycles component with debounced autocomplete, full-width inputs, and adaptive light/dark typography."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from stock_cycle_tracker.ui.theme import (
     COLOR_SURFACE_CARD,
     COLOR_TEXT_DIM,
     COLOR_TEXT_MUTED,
-    COLOR_TEXT_PRIMARY,
     COLOR_UP_STRONG,
 )
 
@@ -110,7 +109,7 @@ class ManageCyclesView(rio.Component):
 
         # Header Title
         header = rio.Column(
-            rio.Text("Manage Stocks & Research Cycles", font_size=1.3 if is_mobile else 1.8, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+            rio.Text("Manage Stocks & Research Cycles", font_size=1.3 if is_mobile else 1.8, font_weight="bold"),
             rio.Text("Add new research anchor dates or manage active tracked cycles", font_size=0.78 if is_mobile else 0.95, fill=COLOR_TEXT_MUTED),
             spacing=0.08,
             margin_x=0.4 if is_mobile else 1.2,
@@ -128,7 +127,7 @@ class ManageCyclesView(rio.Component):
                 min_height=1.3 if is_mobile else 1.6,
             ),
             rio.Column(
-                rio.Text("Add New Research Date Cycle", font_size=1.0 if is_mobile else 1.2, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                rio.Text("Add New Research Date Cycle", font_size=1.0 if is_mobile else 1.2, font_weight="bold"),
                 rio.Text("Enter a stock ticker or company name with live debounced auto-complete", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
                 spacing=0.02,
                 align_x=0.0,
@@ -227,7 +226,6 @@ class ManageCyclesView(rio.Component):
                 "Currently Tracked Portfolios & Cycles",
                 font_size=1.1 if is_mobile else 1.35,
                 font_weight="bold",
-                fill=COLOR_TEXT_PRIMARY,
                 margin_x=0.4 if is_mobile else 1.2,
                 margin_top=0.4,
             )
@@ -260,7 +258,7 @@ class ManageCyclesView(rio.Component):
                             rio.Card(
                                 rio.Column(
                                     rio.Row(
-                                        rio.Text(f"Cycle {c.cycle_number}", font_weight="bold", font_size=0.88, fill=COLOR_TEXT_PRIMARY),
+                                        rio.Text(f"Cycle {c.cycle_number}", font_weight="bold", font_size=0.88),
                                         rio.Spacer(),
                                         rio.Button(
                                             "Delete",
@@ -293,16 +291,16 @@ class ManageCyclesView(rio.Component):
                         cycles_rows.append(
                             rio.Card(
                                 rio.Row(
-                                    rio.Text(f"Cycle {c.cycle_number}", font_weight="bold", font_size=0.95, fill=COLOR_TEXT_PRIMARY, min_width=6.0),
+                                    rio.Text(f"Cycle {c.cycle_number}", font_weight="bold", font_size=0.95, min_width=6.0),
                                     rio.Column(
                                         rio.Text("Original Research Date", font_size=0.72, fill=COLOR_TEXT_DIM),
-                                        rio.Text(c.reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                                        rio.Text(c.reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold"),
                                         min_width=12.0,
                                         spacing=0.03,
                                     ),
                                     rio.Column(
                                         rio.Text("Annual Recurrence", font_size=0.72, fill=COLOR_TEXT_DIM),
-                                        rio.Text(c.recurring_formatted, font_size=0.92, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                                        rio.Text(c.recurring_formatted, font_size=0.92, font_weight="bold"),
                                         min_width=10.0,
                                         spacing=0.03,
                                     ),
@@ -353,7 +351,7 @@ class ManageCyclesView(rio.Component):
                     card_header = rio.Column(
                         rio.Row(
                             rio.Row(
-                                rio.Text(stk.symbol, font_size=1.1, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(stk.symbol, font_size=1.1, font_weight="bold"),
                                 exchange_badge,
                                 spacing=0.3,
                                 align_y=0.5,
@@ -395,7 +393,7 @@ class ManageCyclesView(rio.Component):
                 else:
                     card_header = rio.Row(
                         rio.Row(
-                            rio.Text(stk.symbol, font_size=1.35, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                            rio.Text(stk.symbol, font_size=1.35, font_weight="bold"),
                             exchange_badge,
                             spacing=0.4,
                             align_y=0.5,

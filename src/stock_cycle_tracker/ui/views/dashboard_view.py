@@ -1,4 +1,4 @@
-"""Polished, modern Dashboard view component with zero horizontal scrollbar and clean Upside/Downside bucket filter."""
+"""Polished, modern Dashboard view component with zero horizontal scrollbar and adaptive light/dark typography."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from stock_cycle_tracker.ui.theme import (
     COLOR_SURFACE_HOVER,
     COLOR_TEXT_DIM,
     COLOR_TEXT_MUTED,
-    COLOR_TEXT_PRIMARY,
     COLOR_UP_STRONG,
     get_bucket_color,
     get_change_color,
@@ -81,7 +80,7 @@ class DashboardView(rio.Component):
         if is_mobile:
             header_content = rio.Column(
                 rio.Row(
-                    rio.Text("Cycle Analytics", font_size=1.3, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                    rio.Text("Cycle Analytics", font_size=1.3, font_weight="bold"),
                     rio.Spacer(),
                     rio.Card(
                         rio.Row(
@@ -125,7 +124,6 @@ class DashboardView(rio.Component):
                         "Cycle Overview & Analytics",
                         font_size=1.8,
                         font_weight="bold",
-                        fill=COLOR_TEXT_PRIMARY,
                     ),
                     rio.Text(
                         "Annual research-date cycle boundaries benchmarked against historical reference High",
@@ -176,7 +174,7 @@ class DashboardView(rio.Component):
                         rio.Icon("material/domain", fill=rio.Color.from_hex("#3B82F6"), min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
                         align_y=0.5,
                     ),
-                    rio.Text(str(total_stocks), font_size=1.6 if is_mobile else 2.1, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                    rio.Text(str(total_stocks), font_size=1.6 if is_mobile else 2.1, font_weight="bold"),
                     spacing=0.08,
                     margin=0.6 if is_mobile else 0.8,
                 ),
@@ -193,7 +191,7 @@ class DashboardView(rio.Component):
                         rio.Icon("material/autorenew", fill=rio.Color.from_hex("#8B5CF6"), min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
                         align_y=0.5,
                     ),
-                    rio.Text(str(total_cycles), font_size=1.6 if is_mobile else 2.1, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                    rio.Text(str(total_cycles), font_size=1.6 if is_mobile else 2.1, font_weight="bold"),
                     spacing=0.08,
                     margin=0.6 if is_mobile else 0.8,
                 ),
@@ -254,7 +252,7 @@ class DashboardView(rio.Component):
                 grow_x=True,
             )
 
-        # Toolbar Filter Bar (Removed UNCLASSIFIED from options)
+        # Toolbar Filter Bar
         toolbar_elements: list[rio.Component] = [
             rio.TextInput(
                 label="Search Symbol or Company",
@@ -351,7 +349,7 @@ class DashboardView(rio.Component):
                         # Top Row: Symbol, Exchange badge, Price, Price badge
                         rio.Row(
                             rio.Row(
-                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.1, fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.1),
                                 rio.Card(
                                     rio.Text(
                                         item.exchange,
@@ -375,7 +373,7 @@ class DashboardView(rio.Component):
                             ),
                             rio.Spacer(),
                             rio.Row(
-                                rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=1.1, fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=1.1),
                                 rio.Card(
                                     rio.Text(
                                         item.price_type.value,
@@ -403,7 +401,7 @@ class DashboardView(rio.Component):
                         # Cycle & Metrics
                         rio.Row(
                             rio.Column(
-                                rio.Text(f"Cycle {item.cycle_number}", font_size=0.78, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(f"Cycle {item.cycle_number}", font_size=0.78, font_weight="bold"),
                                 rio.Text(f"Ref: {item.original_reference_date.strftime('%d-%b-%Y')}", font_size=0.7, fill=COLOR_TEXT_DIM),
                                 spacing=0.02,
                             ),
@@ -509,7 +507,7 @@ class DashboardView(rio.Component):
                         # Stock & Exchange
                         rio.Column(
                             rio.Row(
-                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.0, fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.0),
                                 rio.Card(
                                     rio.Text(
                                         item.exchange,
@@ -539,17 +537,17 @@ class DashboardView(rio.Component):
                         rio.Text(f"Cycle {item.cycle_number}", font_size=0.88, font_weight="bold", fill=COLOR_TEXT_MUTED, min_width=4.0),
                         # Original LD
                         rio.Column(
-                            rio.Text(item.original_reference_date.strftime("%d-%b-%Y"), font_size=0.88, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                            rio.Text(item.original_reference_date.strftime("%d-%b-%Y"), font_size=0.88, font_weight="bold"),
                             rio.Text(f"Recur: {item.recurring_reference_date.strftime('%d-%b')}", font_size=0.72, fill=COLOR_TEXT_DIM),
                             min_width=8.5,
                             spacing=0.02,
                         ),
                         # Actual Trading Date
-                        rio.Text(item.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.88, fill=COLOR_TEXT_PRIMARY, min_width=7.5),
+                        rio.Text(item.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.88, min_width=7.5),
                         # Ref High
-                        rio.Text(f"₹{item.reference_high:,.2f}", font_size=0.9, font_weight="bold", fill=COLOR_TEXT_PRIMARY, min_width=6.5),
+                        rio.Text(f"₹{item.reference_high:,.2f}", font_size=0.9, font_weight="bold", min_width=6.5),
                         # Current Price
-                        rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=0.98, fill=COLOR_TEXT_PRIMARY, min_width=6.5),
+                        rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=0.98, min_width=6.5),
                         # Price Mode Badge
                         rio.Card(
                             rio.Text(

@@ -64,7 +64,6 @@ class RootComponent(rio.Component):
         # Build Navbar Header
         header_content: rio.Component
         if is_mobile:
-            # Mobile Header: Logo + Title + Theme Toggle + High-Contrast Hamburger Button
             mobile_top_bar = rio.Row(
                 rio.Row(
                     rio.Icon(
@@ -78,7 +77,6 @@ class RootComponent(rio.Component):
                             "CYCLE TRACKER",
                             font_weight="bold",
                             font_size=0.98,
-                            fill=COLOR_TEXT_PRIMARY,
                         ),
                         rio.Text(
                             "Cycle Intelligence",
@@ -94,13 +92,12 @@ class RootComponent(rio.Component):
                 ),
                 rio.Spacer(),
                 rio.Button(
-                    "",
-                    icon="material/light-mode" if self.is_dark_mode else "material/dark-mode",
-                    shape="circle",
-                    style="plain-text",
+                    "Dark" if self.is_dark_mode else "Light",
+                    icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                    shape="rounded",
+                    style="minor",
                     color="neutral",
                     min_height=2.0,
-                    min_width=2.0,
                     on_press=self._toggle_theme,
                 ),
                 rio.Button(
@@ -142,7 +139,7 @@ class RootComponent(rio.Component):
             else:
                 header_content = mobile_top_bar
         else:
-            # Desktop Header: Logo + Title on left, Nav pills + Theme Toggle on right
+            # Desktop Header
             header_content = rio.Row(
                 rio.Row(
                     rio.Icon(
@@ -156,7 +153,6 @@ class RootComponent(rio.Component):
                             "STOCK CYCLE TRACKER",
                             font_weight="bold",
                             font_size=1.15,
-                            fill=COLOR_TEXT_PRIMARY,
                         ),
                         rio.Text(
                             "Institutional Cycle Intelligence",
@@ -177,13 +173,12 @@ class RootComponent(rio.Component):
                     self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
                     self._build_nav_button("Alerts", "material/notifications", "alerts"),
                     rio.Button(
-                        "",
-                        icon="material/light-mode" if self.is_dark_mode else "material/dark-mode",
-                        shape="circle",
-                        style="plain-text",
+                        "Dark" if self.is_dark_mode else "Light",
+                        icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                        shape="rounded",
+                        style="minor",
                         color="neutral",
-                        min_height=2.0,
-                        min_width=2.0,
+                        min_height=2.2,
                         on_press=self._toggle_theme,
                     ),
                     spacing=0.4,
