@@ -41,16 +41,18 @@ class YFinanceFallbackProvider(MarketDataProvider):
         return "YahooFinance"
 
     def _get_ticker_symbol(self, stock: Stock) -> str:
-        sym = stock.symbol.strip().upper()
+        sym = stock.symbol.strip().replace(" ", "").upper()
         if sym.endswith(".NS") or sym.endswith(".BO"):
             return sym
 
         if stock.preferred_exchange == ExchangePreference.BSE or stock.bse_code:
-            return f"{stock.bse_code or sym}.BO"
-        return f"{stock.nse_symbol or sym}.NS"
+            code = (stock.bse_code or sym).replace(" ", "")
+            return f"{code}.BO"
+        nse_sym = (stock.nse_symbol or sym).replace(" ", "")
+        return f"{nse_sym}.NS"
 
     def resolve_stock(self, query: str) -> Optional[Stock]:
-        q = query.strip().upper()
+        q = query.strip().upper().replace(" ", "")
         # Strip potential suffixes if user entered them
         clean_sym = q.replace(".NS", "").replace(".BO", "")
 
