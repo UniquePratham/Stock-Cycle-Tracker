@@ -1,7 +1,8 @@
-"""Stock Detail and Interactive Chart view component with dark terminal aesthetics, multi-cycle switcher, and adaptive portrait/landscape mobile layout."""
+"""Enhanced Stock Detail view component supporting multi-cycle tab switching, full cycle overlays, and adaptive light/dark theme."""
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Callable, List, Optional
 
 import rio
@@ -15,7 +16,6 @@ from stock_cycle_tracker.ui.theme import (
     COLOR_SURFACE_CARD,
     COLOR_TEXT_DIM,
     COLOR_TEXT_MUTED,
-    COLOR_TEXT_PRIMARY,
     COLOR_UP_STRONG,
     get_bucket_color,
     get_change_color,
@@ -23,7 +23,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class StockDetailView(rio.Component):
-    """Detailed cycle breakdown and Plotly chart view for a selected stock with multi-cycle switching."""
+    """Detailed cycle inspection for a single stock with interactive chart and multi-cycle tabs."""
 
     stock_symbol: str
     on_navigate: Callable[[str, Optional[str]], None]
@@ -35,28 +35,29 @@ class StockDetailView(rio.Component):
         self.overlay_all_cycles = False
 
     def _toggle_overlay_all(self) -> None:
-        self.overlay_all_cycles = True
+        self.overlay_all_cycles = not self.overlay_all_cycles
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
-        is_portrait = self.session.window_width < self.session.window_height
+        is_portrait = self.session.window_height > self.session.window_width
+        is_dark_mode = not getattr(self.session.theme, "is_light_theme", False)
+
         container = ServiceContainer.get()
         detail = container.cycle_service.get_stock_detail(self.stock_symbol)
 
-        if not detail or not detail.get("stock"):
+        if not detail:
             return rio.Column(
                 rio.Button(
                     "Back to Dashboard",
                     icon="material/arrow-back",
                     shape="rounded",
-                    style="major",
+                    style="minor",
                     color="primary",
                     on_press=lambda: self.on_navigate("dashboard", None),
                 ),
-                rio.Text(f"Stock '{self.stock_symbol}' not found.", font_size=1.2, fill=COLOR_TEXT_MUTED),
+                rio.Text(f"Stock '{self.stock_symbol}' not found.", font_size=1.2, fill=COLOR_DOWN_STRONG),
                 spacing=1.0,
-                margin=1.5,
-                grow_x=True,
+                margin=1.0,
             )
 
         stock = detail["stock"]
@@ -74,7 +75,7 @@ class StockDetailView(rio.Component):
         else:
             active_analysis = None
 
-        # Build Plotly chart with multi-cycle support & adaptive vertical height
+        # Build Plotly chart with multi-cycle support & adaptive vertical height & theme gridlines
         fig = create_cycle_plotly_figure(
             symbol=stock.symbol,
             ohlc_bars=ohlc,
@@ -83,6 +84,7 @@ class StockDetailView(rio.Component):
             overlay_all=self.overlay_all_cycles,
             is_mobile=is_mobile,
             is_portrait=is_portrait,
+            is_dark_mode=is_dark_mode,
         )
 
         # Tight, non-stretching Exchange Badge
@@ -121,7 +123,7 @@ class StockDetailView(rio.Component):
             align_y=0.5,
         )
 
-        # Header Section
+        # Header Section (Adaptive light/dark text colors)
         header_content: rio.Component
         if is_mobile:
             header_content = rio.Column(
@@ -137,7 +139,7 @@ class StockDetailView(rio.Component):
                     ),
                     rio.Spacer(),
                     rio.Row(
-                        rio.Text(f"₹{current_price:,.2f}", font_size=1.2, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        rio.Text(f"₹{current_price:,.2f}", font_size=1.2, font_weight="bold"),
                         price_badge,
                         spacing=0.25,
                         align_y=0.5,
@@ -148,7 +150,7 @@ class StockDetailView(rio.Component):
                     grow_x=True,
                 ),
                 rio.Row(
-                    rio.Text(stock.symbol, font_size=1.3, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                    rio.Text(stock.symbol, font_size=1.3, font_weight="bold"),
                     exchange_badge,
                     spacing=0.3,
                     align_y=0.5,
@@ -171,7 +173,7 @@ class StockDetailView(rio.Component):
                 ),
                 rio.Column(
                     rio.Row(
-                        rio.Text(stock.symbol, font_size=1.6, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        rio.Text(stock.symbol, font_size=1.6, font_weight="bold"),
                         exchange_badge,
                         spacing=0.4,
                         align_y=0.5,
@@ -187,7 +189,7 @@ class StockDetailView(rio.Component):
                     rio.Column(
                         rio.Text("Current Market Price", font_size=0.75, fill=COLOR_TEXT_MUTED),
                         rio.Row(
-                            rio.Text(f"₹{current_price:,.2f}", font_size=1.5, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                            rio.Text(f"₹{current_price:,.2f}", font_size=1.5, font_weight="bold"),
                             price_badge,
                             spacing=0.4,
                             align_y=0.5,
@@ -197,7 +199,7 @@ class StockDetailView(rio.Component):
                         margin_y=0.3,
                     ),
                     corner_radius=0.4,
-                    color="neutral",
+                    color="hud",
                 ),
                 spacing=1.0,
                 align_y=0.5,
@@ -218,27 +220,28 @@ class StockDetailView(rio.Component):
         if len(analyses) > 1:
             tab_buttons: list[rio.Component] = []
             for i, a in enumerate(analyses):
-                is_selected = (not self.overlay_all_cycles) and (self.selected_cycle_index == i)
+                is_sel = (i == self.selected_cycle_index) and not self.overlay_all_cycles
                 tab_buttons.append(
                     rio.Button(
                         f"Cycle {a.cycle_number} ({a.original_reference_date.strftime('%d-%b-%Y')})",
+                        icon="material/history-toggle-off" if is_sel else "material/timeline",
                         shape="rounded",
-                        style="major" if is_selected else "minor",
-                        color="primary",
-                        min_height=2.0 if is_mobile else 2.2,
+                        style="major" if is_sel else "minor",
+                        color="primary" if is_sel else "neutral",
+                        min_height=2.2 if is_mobile else 2.5,
                         grow_x=is_mobile,
                         on_press=lambda idx=i: self._select_cycle(idx),
                     )
                 )
 
-            # Option to overlay all cycles simultaneously
             tab_buttons.append(
                 rio.Button(
-                    "✨ Overlay All Cycles",
+                    "Compare All Cycles",
+                    icon="material/stacked-line-chart",
                     shape="rounded",
                     style="major" if self.overlay_all_cycles else "minor",
-                    color="secondary" if self.overlay_all_cycles else "primary",
-                    min_height=2.0 if is_mobile else 2.2,
+                    color="success" if self.overlay_all_cycles else "neutral",
+                    min_height=2.2 if is_mobile else 2.5,
                     grow_x=is_mobile,
                     on_press=self._toggle_overlay_all,
                 )
@@ -247,239 +250,234 @@ class StockDetailView(rio.Component):
             cycle_switcher_card = rio.Card(
                 rio.Column(
                     rio.Row(
-                        rio.Icon("material/tune", fill=rio.Color.from_hex("#3B82F6"), min_width=1.2, min_height=1.2),
-                        rio.Text("Select Active Cycle to View on Chart:", font_size=0.85 if is_mobile else 0.9, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        rio.Icon("material/layers", fill=rio.Color.from_hex("#3B82F6"), min_width=1.2, min_height=1.2),
+                        rio.Text(
+                            f"Multiple Research Cycles Detected ({len(analyses)} cycles registered)",
+                            font_weight="bold",
+                            font_size=0.88 if is_mobile else 0.95,
+                        ),
                         spacing=0.3,
                         align_y=0.5,
                     ),
                     rio.FlowContainer(
                         *tab_buttons,
-                        spacing=0.3 if is_mobile else 0.5,
-                        row_spacing=0.3 if is_mobile else 0.4,
-                        column_spacing=0.3 if is_mobile else 0.5,
+                        spacing=0.4,
+                        row_spacing=0.3,
+                        column_spacing=0.4,
                         justify="left",
+                        align_y=0.5,
                         grow_x=True,
                     ),
                     spacing=0.4,
-                    margin=0.5 if is_mobile else 0.7,
+                    margin_x=0.6 if is_mobile else 0.8,
+                    margin_y=0.4 if is_mobile else 0.6,
                     grow_x=True,
                 ),
-                corner_radius=0.5,
-                color="neutral",
+                corner_radius=0.4,
+                color="hud",
                 margin_x=0.4 if is_mobile else 1.2,
                 grow_x=True,
             )
 
-        # Highlight KPI Banner for active cycle
-        kpi_banner: Optional[rio.Component] = None
+        # Selected Cycle KPI Cards
+        stats_cards: list[rio.Component] = []
         if active_analysis:
             chg_col = get_change_color(active_analysis.percentage_change)
-            bkt_col = get_bucket_color(active_analysis.bucket)
-            c_label = f"Cycle {active_analysis.cycle_number}" if not self.overlay_all_cycles else "Active Cycle Overview"
+            bucket_col = get_bucket_color(active_analysis.bucket)
 
-            card1 = rio.Card(
-                rio.Column(
-                    rio.Text(f"{c_label} Ref High", font_size=0.75 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
-                    rio.Text(f"₹{active_analysis.reference_high:,.2f}", font_size=1.15 if is_mobile else 1.3, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                    rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.7, fill=COLOR_TEXT_DIM),
-                    spacing=0.06,
-                    margin=0.5 if is_mobile else 0.6,
-                ),
-                corner_radius=0.4,
-                color="neutral",
-                grow_x=True,
-            )
-            card2 = rio.Card(
-                rio.Column(
-                    rio.Text("Percentage Change", font_size=0.75 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
-                    rio.Text(f"{active_analysis.percentage_change:+.2f}%", font_size=1.15 if is_mobile else 1.3, font_weight="bold", fill=chg_col),
-                    rio.Text("vs Reference High", font_size=0.7, fill=COLOR_TEXT_DIM),
-                    spacing=0.06,
-                    margin=0.5 if is_mobile else 0.6,
-                ),
-                corner_radius=0.4,
-                color="neutral",
-                grow_x=True,
-            )
-            card3 = rio.Card(
-                rio.Column(
-                    rio.Text("Classification Bucket", font_size=0.75 if is_mobile else 0.8, fill=COLOR_TEXT_MUTED),
-                    rio.Text(active_analysis.bucket, font_size=1.15 if is_mobile else 1.3, font_weight="bold", fill=bkt_col),
-                    rio.Text(f"Window: {active_analysis.cycle_start_date.strftime('%d-%b')} → {active_analysis.cycle_end_date.strftime('%d-%b-%y')}", font_size=0.7, fill=COLOR_TEXT_DIM),
-                    spacing=0.06,
-                    margin=0.5 if is_mobile else 0.6,
-                ),
-                corner_radius=0.4,
-                color="neutral",
-                grow_x=True,
-            )
-
-            if is_mobile:
-                kpi_banner = rio.Column(
-                    card1,
-                    card2,
-                    card3,
-                    spacing=0.3,
-                    margin_x=0.4,
+            stats_cards = [
+                rio.Card(
+                    rio.Column(
+                        rio.Text(f"Cycle {active_analysis.cycle_number} Ref High", font_size=0.75, fill=COLOR_TEXT_MUTED),
+                        rio.Text(f"₹{active_analysis.reference_high:,.2f}", font_size=1.3 if is_mobile else 1.6, font_weight="bold"),
+                        rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        spacing=0.04,
+                        margin=0.5 if is_mobile else 0.7,
+                    ),
+                    corner_radius=0.4,
+                    color="neutral",
                     grow_x=True,
-                )
-            else:
-                kpi_banner = rio.Row(
-                    card1,
-                    card2,
-                    card3,
-                    spacing=0.8,
-                    margin_x=1.2,
+                ),
+                rio.Card(
+                    rio.Column(
+                        rio.Text("Percentage Change", font_size=0.75, fill=COLOR_TEXT_MUTED),
+                        rio.Text(f"{active_analysis.percentage_change:+.2f}%", font_size=1.3 if is_mobile else 1.6, font_weight="bold", fill=chg_col),
+                        rio.Text("vs Reference High", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        spacing=0.04,
+                        margin=0.5 if is_mobile else 0.7,
+                    ),
+                    corner_radius=0.4,
+                    color="neutral",
                     grow_x=True,
-                )
+                ),
+                rio.Card(
+                    rio.Column(
+                        rio.Text("Classification Bucket", font_size=0.75, fill=COLOR_TEXT_MUTED),
+                        rio.Text(active_analysis.bucket, font_size=1.1 if is_mobile else 1.3, font_weight="bold", fill=bucket_col),
+                        rio.Text(
+                            f"Window: {active_analysis.cycle_start_date.strftime('%d-%b')} → {active_analysis.cycle_end_date.strftime('%d-%b-%y')}",
+                            font_size=0.7,
+                            fill=COLOR_TEXT_DIM,
+                        ),
+                        spacing=0.04,
+                        margin=0.5 if is_mobile else 0.7,
+                    ),
+                    corner_radius=0.4,
+                    color="neutral",
+                    grow_x=True,
+                ),
+            ]
 
-        # Plotly Chart Card (Adaptive height: tall portrait vs horizontal landscape)
-        chart_card_min_height = (42.0 if is_portrait else 24.0) if is_mobile else 28.0
+        stats_layout: rio.Component
+        if is_mobile:
+            stats_layout = rio.Column(
+                *stats_cards,
+                spacing=0.3,
+                margin_x=0.4,
+                grow_x=True,
+            )
+        else:
+            stats_layout = rio.Row(
+                *stats_cards,
+                spacing=0.8,
+                margin_x=1.2,
+                grow_x=True,
+            )
 
+        # Plotly Chart Card
         chart_card = rio.Card(
-            rio.Plot(
-                fig,
-                min_height=chart_card_min_height,
-                grow_x=True,
-                grow_y=True,
-                corner_radius=0.4,
-            ),
+            rio.PlotlyChart(fig),
             corner_radius=0.5,
             color="neutral",
             margin_x=0.4 if is_mobile else 1.2,
             grow_x=True,
         )
 
-        # Configured Research Cycles Breakdown Section
-        cycle_cards: list[rio.Component] = []
-        cycle_cards.append(
+        # Cycles Breakdown Table
+        breakdown_rows: list[rio.Component] = []
+        breakdown_rows.append(
             rio.Text(
                 "Configured Research Cycles Breakdown",
-                font_size=1.05 if is_mobile else 1.2,
+                font_size=1.1 if is_mobile else 1.3,
                 font_weight="bold",
-                fill=COLOR_TEXT_PRIMARY,
                 margin_x=0.4 if is_mobile else 1.2,
                 margin_top=0.4,
             )
         )
 
-        for i, a in enumerate(analyses):
-            chg_col = get_change_color(a.percentage_change)
-            bkt_col = get_bucket_color(a.bucket)
-            is_active = (not self.overlay_all_cycles) and (self.selected_cycle_index == i)
+        for a in analyses:
+            is_active_row = a.cycle_number == (active_analysis.cycle_number if active_analysis else 1)
+            chg_c = get_change_color(a.percentage_change)
+            bk_c = get_bucket_color(a.bucket)
+
+            cycle_chip = rio.Card(
+                rio.Text(f"Cycle {a.cycle_number}", font_size=0.78, font_weight="bold", fill=rio.Color.from_hex("#60A5FA"), margin_x=0.4, margin_y=0.15),
+                corner_radius=0.25,
+                color="hud",
+                grow_x=False,
+                grow_y=False,
+                align_x=0.0,
+                align_y=0.5,
+            )
 
             if is_mobile:
-                card_content = rio.Column(
+                row_content = rio.Column(
                     rio.Row(
-                        rio.Text(f"Cycle {a.cycle_number}", font_size=0.95, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        cycle_chip,
                         rio.Spacer(),
-                        rio.Text(f"{a.percentage_change:+.2f}%", font_size=0.95, font_weight="bold", fill=chg_col),
+                        rio.Text(f"{a.percentage_change:+.2f}%", font_weight="bold", font_size=1.05, fill=chg_c),
                         align_y=0.5,
                         grow_x=True,
                     ),
                     rio.Row(
-                        rio.Text(f"Ref Date: {a.original_reference_date.strftime('%d-%b-%Y')}", font_size=0.72, fill=COLOR_TEXT_MUTED),
+                        rio.Text(f"Research Date: {a.original_reference_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_MUTED),
                         rio.Spacer(),
-                        rio.Text(f"Ref High: ₹{a.reference_high:,.2f}", font_size=0.75, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                        rio.Text(f"Trading Date: {a.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
                         align_y=0.5,
                         grow_x=True,
                     ),
                     rio.Row(
+                        rio.Text(f"Ref High: ₹{a.reference_high:,.2f}", font_size=0.78, font_weight="bold"),
+                        rio.Spacer(),
                         rio.Card(
-                            rio.Text(a.bucket, font_size=0.7, font_weight="bold", fill=bkt_col, margin_x=0.3, margin_y=0.1),
-                            corner_radius=0.25,
+                            rio.Text(a.bucket, font_size=0.7, font_weight="bold", fill=bk_c, margin_x=0.35, margin_y=0.1),
+                            corner_radius=0.2,
                             color="hud",
                         ),
-                        rio.Spacer(),
-                        rio.Button(
-                            "Viewing on Chart" if is_active else "View on Chart",
-                            icon="material/show-chart",
-                            shape="rounded",
-                            style="major" if is_active else "minor",
-                            color="primary",
-                            min_height=2.0,
-                            on_press=lambda idx=i: self._select_cycle(idx),
-                        ),
                         align_y=0.5,
                         grow_x=True,
                     ),
-                    spacing=0.25,
+                    spacing=0.2,
                     margin=0.5,
                     grow_x=True,
                 )
             else:
-                card_content = rio.Row(
+                row_content = rio.Row(
+                    cycle_chip,
                     rio.Column(
-                        rio.Row(
-                            rio.Text(f"Cycle {a.cycle_number}", font_size=1.05, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                            rio.Card(
-                                rio.Text("ACTIVE ON CHART", font_size=0.65, font_weight="bold", fill=COLOR_UP_STRONG, margin_x=0.35, margin_y=0.1),
-                                corner_radius=0.2,
-                                color="hud",
-                            ) if is_active else rio.Spacer(),
-                            spacing=0.4,
-                            align_y=0.5,
-                        ),
-                        rio.Text(f"Original Date: {a.original_reference_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
-                        spacing=0.05,
+                        rio.Text("Original Research Date", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(a.original_reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold"),
+                        min_width=11.0,
+                        spacing=0.02,
                     ),
                     rio.Column(
-                        rio.Text(f"Recurrence: {a.recurring_reference_date.strftime('%d-%b')}", font_size=0.85, fill=COLOR_TEXT_MUTED),
-                        rio.Text(f"Trading Day: {a.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
-                        spacing=0.05,
+                        rio.Text("Actual Trading Date", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(a.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.92),
+                        min_width=11.0,
+                        spacing=0.02,
                     ),
                     rio.Column(
-                        rio.Text(f"Ref High: ₹{a.reference_high:,.2f}", font_size=0.9, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                        rio.Text(f"Window: {a.cycle_start_date.strftime('%d-%b-%Y')} → {a.cycle_end_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_DIM),
-                        spacing=0.05,
+                        rio.Text("Reference High", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(f"₹{a.reference_high:,.2f}", font_size=0.92, font_weight="bold"),
+                        min_width=10.0,
+                        spacing=0.02,
+                    ),
+                    rio.Column(
+                        rio.Text("% Change", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(f"{a.percentage_change:+.2f}%", font_size=0.95, font_weight="bold", fill=chg_c),
+                        min_width=7.0,
+                        spacing=0.02,
+                    ),
+                    rio.Card(
+                        rio.Text(a.bucket, font_size=0.78, font_weight="bold", fill=bk_c, margin_x=0.45, margin_y=0.15),
+                        corner_radius=0.25,
+                        color="hud",
+                        min_width=9.0,
                     ),
                     rio.Spacer(),
-                    rio.Column(
-                        rio.Text(f"{a.percentage_change:+.2f}%", font_size=1.15, font_weight="bold", fill=chg_col),
-                        rio.Card(
-                            rio.Text(a.bucket, font_size=0.75, font_weight="bold", fill=bkt_col, margin_x=0.4, margin_y=0.15),
-                            corner_radius=0.25,
-                            color="hud",
-                        ),
-                        spacing=0.1,
-                        align_x=1.0,
-                    ),
                     rio.Button(
-                        "Active on Chart" if is_active else "Switch to This Cycle",
+                        "Inspect Chart",
                         icon="material/show-chart",
                         shape="rounded",
-                        style="major" if is_active else "minor",
-                        color="primary",
-                        on_press=lambda idx=i: self._select_cycle(idx),
+                        style="major" if is_active_row else "minor",
+                        color="primary" if is_active_row else "neutral",
+                        min_height=2.2,
+                        on_press=lambda idx=analyses.index(a): self._select_cycle(idx),
                     ),
-                    spacing=0.8,
+                    spacing=0.6,
                     align_y=0.5,
                     margin_x=0.8,
-                    margin_y=0.4,
+                    margin_y=0.35,
                     grow_x=True,
                 )
 
-            cycle_cards.append(
+            breakdown_rows.append(
                 rio.Card(
-                    card_content,
+                    row_content,
                     corner_radius=0.4,
-                    color="hud" if is_active else "neutral",
+                    color="hud" if is_active_row else "neutral",
                     margin_x=0.4 if is_mobile else 1.2,
                     grow_x=True,
                 )
             )
 
-        components = [header_card]
-        if cycle_switcher_card:
-            components.append(cycle_switcher_card)
-        if kpi_banner:
-            components.append(kpi_banner)
-        components.append(chart_card)
-        components.extend(cycle_cards)
-
         return rio.Column(
-            *components,
-            spacing=0.5,
+            header_card,
+            cycle_switcher_card if cycle_switcher_card else rio.Spacer(),
+            stats_layout,
+            chart_card,
+            *breakdown_rows,
+            spacing=0.6 if is_mobile else 0.8,
             grow_x=True,
             margin_bottom=1.5,
         )

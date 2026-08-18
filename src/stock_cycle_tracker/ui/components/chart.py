@@ -1,20 +1,14 @@
-"""Plotly chart builder for stock cycle visual analysis with orientation-aware mobile layout and touch lock."""
+"""Plotly interactive chart generator supporting multiple cycles, responsive heights, and adaptive light/dark theme gridlines."""
 
 from __future__ import annotations
 
+from datetime import date
 from typing import List, Optional
+
 import pandas as pd
 import plotly.graph_objects as go
 
 from stock_cycle_tracker.domain.models import CycleAnalysis, NormalizedOHLC
-
-CYCLE_COLORS = [
-    "#F59E0B",  # Amber (Cycle 1)
-    "#EC4899",  # Pink (Cycle 2)
-    "#10B981",  # Emerald (Cycle 3)
-    "#8B5CF6",  # Purple (Cycle 4)
-    "#06B6D4",  # Cyan (Cycle 5)
-]
 
 
 def create_cycle_plotly_figure(
@@ -25,129 +19,120 @@ def create_cycle_plotly_figure(
     overlay_all: bool = False,
     is_mobile: bool = False,
     is_portrait: bool = False,
+    is_dark_mode: bool = True,
 ) -> go.Figure:
-    """Builds a rich, dark-themed financial Plotly figure with locked touch scrolling and adaptive orientation."""
-    if is_mobile and is_portrait:
-        chart_height = 720
-    elif is_mobile and not is_portrait:
-        chart_height = 420
-    else:
-        chart_height = 520
+    """Generates an interactive Plotly chart with visible theme-aware grid lines and price action."""
+    fig = go.Figure()
 
     if not ohlc_bars:
-        fig = go.Figure()
         fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="#111827",
-            plot_bgcolor="#111827",
-            title=dict(
-                text=f"{symbol} — No Historical Price Data Available",
-                font=dict(color="#94A3B8", size=14),
-            ),
-            xaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
-            yaxis=dict(showgrid=False, zeroline=False, fixedrange=True),
-            height=chart_height,
-            dragmode=False,
+            annotations=[
+                dict(
+                    text="No historical price data available",
+                    xref="paper",
+                    yref="paper",
+                    showarrow=False,
+                    font=dict(size=14, color="#94A3B8"),
+                )
+            ]
         )
         return fig
 
-    # Build DataFrame from NormalizedOHLC objects
-    records = [
+    df = pd.DataFrame([
         {
-            "date": b.date,
-            "open": b.open,
-            "high": b.high,
-            "low": b.low,
-            "close": b.close,
-            "volume": b.volume,
+            "Date": b.date,
+            "Open": b.open,
+            "High": b.high,
+            "Low": b.low,
+            "Close": b.close,
+            "Volume": b.volume,
         }
         for b in ohlc_bars
-    ]
-    df = pd.DataFrame(records)
-    df["date"] = pd.to_datetime(df["date"])
-    df = df.sort_values("date")
+    ])
+    df.sort_values("Date", inplace=True)
 
-    fig = go.Figure()
+    # Base price trace: Line plot with soft area gradient
+    line_col = "#38BDF8" if is_dark_mode else "#0284C7"
+    fill_col = "rgba(56, 189, 248, 0.08)" if is_dark_mode else "rgba(2, 132, 199, 0.06)"
 
-    # Close price line with subtle area fill
     fig.add_trace(
         go.Scatter(
-            x=df["date"],
-            y=df["close"],
+            x=df["Date"],
+            y=df["Close"],
             mode="lines",
             name="Daily Close",
-            line=dict(color="#3B82F6", width=2.5),
+            line=dict(color=line_col, width=2.0),
             fill="tozeroy",
-            fillcolor="rgba(59, 130, 246, 0.08)",
-            hovertemplate="<b>%{x|%d %b %Y}</b><br>Close: ₹%{y:,.2f}<extra></extra>",
+            fillcolor=fill_col,
+            hovertemplate="<b>%{x|%d-%b-%Y}</b><br>Close: ₹%{y:,.2f}<extra></extra>",
         )
     )
 
-    analyses_to_draw = []
+    # Determine which analyses to plot
+    analyses_to_plot: List[CycleAnalysis] = []
     if overlay_all and all_analyses:
-        analyses_to_draw = all_analyses
+        analyses_to_plot = all_analyses
     elif analysis:
-        analyses_to_draw = [analysis]
+        analyses_to_plot = [analysis]
 
-    for idx, item in enumerate(analyses_to_draw):
-        color = CYCLE_COLORS[idx % len(CYCLE_COLORS)]
-        ref_high = item.reference_high
-        ref_date = item.actual_reference_trading_date
-        c_num = item.cycle_number
+    # Palette for multiple cycle lines
+    cycle_colors = ["#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#3B82F6"]
+
+    for idx, c_analysis in enumerate(analyses_to_plot):
+        col = cycle_colors[idx % len(cycle_colors)]
+        c_num = c_analysis.cycle_number
+        ref_high = c_analysis.reference_high
+        ref_trade_date = c_analysis.actual_reference_trading_date
 
         # Reference High horizontal line
         fig.add_hline(
             y=ref_high,
             line_dash="dash",
-            line_color=color,
-            line_width=2.0,
+            line_color=col,
+            line_width=1.8,
             annotation_text=f"C{c_num} Ref High: ₹{ref_high:,.2f}",
-            annotation_position="top right" if not is_mobile else "top left",
-            annotation_font=dict(color=color, size=9 if is_mobile else 11, family="Inter, Roboto, sans-serif"),
-            annotation_bgcolor="#1E293B",
-            annotation_bordercolor=color,
+            annotation_position="top right",
+            annotation_font=dict(color=col, size=9 if is_mobile else 11, family="Inter, Roboto, sans-serif"),
+            annotation_bgcolor="#1E293B" if is_dark_mode else "#F1F5F9",
+            annotation_bordercolor=col,
             annotation_borderwidth=1,
+            annotation_borderpad=3,
         )
 
-        # Actual reference date vertical line
+        # Anchor date vertical reference line
         fig.add_vline(
-            x=pd.to_datetime(ref_date),
+            x=ref_trade_date,
             line_dash="dot",
-            line_color=color,
+            line_color=col,
             line_width=1.5,
-            annotation_text=f"C{c_num} Ref: {ref_date.strftime('%d-%b')}",
+            annotation_text=f"C{c_num} Ref: {ref_trade_date.strftime('%d-%b')}",
             annotation_position="bottom left",
-            annotation_font=dict(color=color, size=9 if is_mobile else 11, family="Inter, Roboto, sans-serif"),
-            annotation_bgcolor="#1E293B",
-            annotation_bordercolor=color,
+            annotation_font=dict(color=col, size=9 if is_mobile else 10, family="Inter, Roboto, sans-serif"),
+            annotation_bgcolor="#1E293B" if is_dark_mode else "#F1F5F9",
+            annotation_bordercolor=col,
             annotation_borderwidth=1,
+            annotation_borderpad=2,
         )
 
-    # Current price marker
-    if analysis:
-        cur_price = analysis.current_price
-        latest_date = df["date"].iloc[-1]
-        is_up = analysis.percentage_change >= 0
-        point_col = "#10B981" if is_up else "#F43F5E"
-
+    # Add Latest Price marker dot
+    if not df.empty:
+        last_row = df.iloc[-1]
         fig.add_trace(
             go.Scatter(
-                x=[latest_date],
-                y=[cur_price],
-                mode="markers+text",
-                name=f"Current ({analysis.price_type.value})",
-                marker=dict(
-                    color=point_col,
-                    size=10 if is_mobile else 13,
-                    symbol="circle",
-                    line=dict(color="#FFFFFF", width=2.0),
-                ),
-                text=[f" ₹{cur_price:,.2f}"],
-                textposition="top right" if not is_mobile else "top left",
-                textfont=dict(color=point_col, size=10 if is_mobile else 13, family="Inter, Roboto, sans-serif"),
-                hovertemplate="<b>Current Price</b>: ₹%{y:,.2f}<br>%{text}<extra></extra>",
+                x=[last_row["Date"]],
+                y=[last_row["Close"]],
+                mode="markers",
+                name=f"Current ({analysis.price_type.value if analysis else 'PRICE'})",
+                marker=dict(size=9 if is_mobile else 10, color="#F43F5E", line=dict(width=2, color="#FFFFFF")),
+                hovertemplate="<b>Latest: %{x|%d-%b-%Y}</b><br>Price: ₹%{y:,.2f}<extra></extra>",
             )
         )
+
+    # Adaptive chart height
+    if is_mobile:
+        chart_height = 580 if is_portrait else 340
+    else:
+        chart_height = 460
 
     title_text = (
         f"<b>{symbol}</b> (Cycle {analysis.cycle_number if analysis else 1})"
@@ -155,17 +140,39 @@ def create_cycle_plotly_figure(
         else f"<b>{symbol}</b> — Annual Cycle Price Action & Reference High Anchor"
     )
 
+    # Theme-aware colors
+    if is_dark_mode:
+        paper_bg = "#111827"
+        plot_bg = "#0B1120"
+        grid_col = "rgba(255, 255, 255, 0.15)"  # High-contrast visible gridlines
+        zero_col = "rgba(255, 255, 255, 0.25)"
+        title_col = "#F8FAFC"
+        axis_font_col = "#CBD5E1"
+        legend_bg = "rgba(17, 24, 39, 0.85)"
+        legend_font_col = "#E2E8F0"
+        template_name = "plotly_dark"
+    else:
+        paper_bg = "#FFFFFF"
+        plot_bg = "#F8FAFC"
+        grid_col = "#E2E8F0"                   # Distinct soft gray gridlines
+        zero_col = "#CBD5E1"
+        title_col = "#0F172A"
+        axis_font_col = "#475569"
+        legend_bg = "rgba(255, 255, 255, 0.9)"
+        legend_font_col = "#334155"
+        template_name = "plotly_white"
+
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="#111827",
-        plot_bgcolor="#0B1120",
+        template=template_name,
+        paper_bgcolor=paper_bg,
+        plot_bgcolor=plot_bg,
         margin=dict(l=40 if is_mobile else 65, r=15 if is_mobile else 45, t=50 if is_mobile else 65, b=40 if is_mobile else 50),
         height=chart_height,
         autosize=True,
-        dragmode=False,  # Disables touch-drag panning so page scroll works naturally
+        dragmode=False,
         title=dict(
             text=title_text,
-            font=dict(size=12 if is_mobile else 16, color="#F8FAFC", family="Inter, Roboto, sans-serif"),
+            font=dict(size=12 if is_mobile else 16, color=title_col, family="Inter, Roboto, sans-serif"),
             x=0.02,
             y=0.97,
         ),
@@ -175,25 +182,27 @@ def create_cycle_plotly_figure(
             y=1.02,
             xanchor="right",
             x=0.98,
-            font=dict(color="#94A3B8", size=9 if is_mobile else 11),
-            bgcolor="rgba(17, 24, 39, 0.8)",
+            font=dict(color=legend_font_col, size=9 if is_mobile else 11),
+            bgcolor=legend_bg,
         ),
         xaxis=dict(
             showgrid=True,
-            gridcolor="#1E293B",
-            gridwidth=1,
-            zeroline=False,
-            fixedrange=True,  # Disables horizontal zooming/editing on touch
-            color="#94A3B8",
+            gridcolor=grid_col,
+            gridwidth=1.2,
+            zeroline=True,
+            zerolinecolor=zero_col,
+            fixedrange=True,
+            color=axis_font_col,
             tickfont=dict(size=9 if is_mobile else 11),
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor="#1E293B",
-            gridwidth=1,
-            zeroline=False,
-            fixedrange=True,  # Disables vertical zooming/editing on touch
-            color="#94A3B8",
+            gridcolor=grid_col,
+            gridwidth=1.2,
+            zeroline=True,
+            zerolinecolor=zero_col,
+            fixedrange=True,
+            color=axis_font_col,
             tickprefix="₹",
             tickformat=",.2f",
             separatethousands=True,
