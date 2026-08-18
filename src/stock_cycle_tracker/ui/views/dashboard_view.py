@@ -259,14 +259,11 @@ class DashboardView(rio.Component):
                         fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
                     ),
                     rio.Spacer(),
-                    rio.Button(
-                        "",
+                    rio.IconButton(
                         icon="material/close",
-                        shape="circle",
                         style="plain-text",
                         color="neutral",
-                        min_height=1.6,
-                        min_width=1.6,
+                        min_size=1.6,
                         on_press=lambda: setattr(self, "toast_message", ""),
                     ),
                     spacing=0.4,
@@ -722,18 +719,13 @@ class DashboardView(rio.Component):
                             min_width=8.5,
                         ),
                         rio.Spacer(),
-                        # Action Buttons (Compact Round '+' Add Cycle button + Chart button)
+                        # Action Buttons (Circular '+' Add Cycle IconButton + Chart button)
                         rio.Row(
-                            rio.Button(
-                                "",
+                            rio.IconButton(
                                 icon="material/add",
-                                shape="circle",
                                 style="minor",
                                 color="success",
-                                min_height=2.0,
-                                min_width=2.0,
-                                grow_x=False,
-                                grow_y=False,
+                                min_size=2.0,
                                 on_press=lambda s=sym, c=comp: self._open_quick_add(s, c),
                             ),
                             rio.Button(

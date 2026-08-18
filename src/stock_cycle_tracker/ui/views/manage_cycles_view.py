@@ -237,14 +237,11 @@ class ManageCyclesView(rio.Component):
                         fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
                     ),
                     rio.Spacer(),
-                    rio.Button(
-                        "",
+                    rio.IconButton(
                         icon="material/close",
-                        shape="circle",
                         style="plain-text",
                         color="neutral",
-                        min_height=1.6,
-                        min_width=1.6,
+                        min_size=1.6,
                         on_press=lambda: setattr(self, "toast_message", ""),
                     ),
                     spacing=0.4,
