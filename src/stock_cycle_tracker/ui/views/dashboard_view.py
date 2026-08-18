@@ -241,41 +241,48 @@ class DashboardView(rio.Component):
                 grow_x=True,
             )
 
-        # Floating 10-Second Auto-Dismissing Toast Banner
-        toast_banner: Optional[rio.Component] = None
+        # Sticky Floating 10-Second Auto-Dismissing Toast Notification Overlay
+        toast_overlay: Optional[rio.Component] = None
         if self.toast_message:
-            toast_banner = rio.Card(
-                rio.Row(
-                    rio.Icon(
-                        "material/error" if self.toast_is_error else "material/check-circle",
-                        fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
-                        min_width=1.4,
-                        min_height=1.4,
+            toast_overlay = rio.Overlay(
+                rio.Card(
+                    rio.Row(
+                        rio.Icon(
+                            "material/error" if self.toast_is_error else "material/check-circle",
+                            fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
+                            min_width=1.4,
+                            min_height=1.4,
+                        ),
+                        rio.Text(
+                            self.toast_message,
+                            font_weight="bold",
+                            font_size=0.88 if is_mobile else 0.95,
+                            fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
+                        ),
+                        rio.Spacer(),
+                        rio.IconButton(
+                            icon="material/close",
+                            style="plain-text",
+                            color="neutral",
+                            min_size=1.6,
+                            on_press=lambda: setattr(self, "toast_message", ""),
+                        ),
+                        spacing=0.4,
+                        align_y=0.5,
+                        margin_x=0.8,
+                        margin_y=0.35,
+                        grow_x=True,
                     ),
-                    rio.Text(
-                        self.toast_message,
-                        font_weight="bold",
-                        font_size=0.9,
-                        fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
-                    ),
-                    rio.Spacer(),
-                    rio.IconButton(
-                        icon="material/close",
-                        style="plain-text",
-                        color="neutral",
-                        min_size=1.6,
-                        on_press=lambda: setattr(self, "toast_message", ""),
-                    ),
-                    spacing=0.4,
-                    align_y=0.5,
-                    margin_x=0.8,
-                    margin_y=0.3,
-                    grow_x=True,
-                ),
-                corner_radius=0.4,
-                color="hud",
-                margin_x=0.4 if is_mobile else 1.2,
-                grow_x=True,
+                    corner_radius=0.5,
+                    color="hud",
+                    elevate_on_hover=True,
+                    align_x=0.5,
+                    align_y=0.0,
+                    margin_top=1.0,
+                    margin_x=0.5 if is_mobile else 1.5,
+                    grow_x=False,
+                    grow_y=False,
+                )
             )
 
         # KPI Metric Cards
@@ -766,13 +773,18 @@ class DashboardView(rio.Component):
 
         page_layout = rio.Column(
             header_content,
-            toast_banner if toast_banner else rio.Spacer(),
             metrics_layout,
             toolbar_card,
             data_content,
             spacing=0.6 if is_mobile else 0.8,
             grow_x=True,
         )
+
+        components: list[rio.Component] = [page_layout]
+
+        # Sticky Floating Toast Overlay (floats on top regardless of scroll position)
+        if toast_overlay is not None:
+            components.append(toast_overlay)
 
         # Centered Quick Add Cycle Modal Dialog Box (Overlay)
         if self.quick_add_stock_symbol is not None:
@@ -847,10 +859,6 @@ class DashboardView(rio.Component):
                     grow_y=True,
                 )
             )
-            return rio.Column(
-                page_layout,
-                quick_add_dialog,
-                grow_x=True,
-            )
+            components.append(quick_add_dialog)
 
-        return page_layout
+        return rio.Column(*components, grow_x=True)
