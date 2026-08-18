@@ -1,12 +1,12 @@
-"""Design tokens, theme configuration, and color helpers for Stock Cycle Tracker."""
+"""Design tokens, dual light/dark theme configuration, and color helpers for Stock Cycle Tracker."""
 
 from __future__ import annotations
 
 import rio
 
 
-def create_app_theme() -> rio.Theme:
-    """Creates a custom, dark financial-terminal theme for Rio."""
+def create_dark_theme() -> rio.Theme:
+    """Creates a custom dark financial-terminal theme for Rio."""
     return rio.Theme.from_colors(
         mode="dark",
         primary_color=rio.Color.from_hex("#3B82F6"),     # Electric Blue
@@ -22,6 +22,30 @@ def create_app_theme() -> rio.Theme:
         corner_radius_medium=0.6,
         corner_radius_large=0.8,
     )
+
+
+def create_light_theme() -> rio.Theme:
+    """Creates a sleek, high-contrast light theme for Rio."""
+    return rio.Theme.from_colors(
+        mode="light",
+        primary_color=rio.Color.from_hex("#2563EB"),     # Vivid Blue
+        secondary_color=rio.Color.from_hex("#4F46E5"),   # Indigo
+        background_color=rio.Color.from_hex("#F1F5F9"),  # Soft Cool Slate Canvas
+        neutral_color=rio.Color.from_hex("#FFFFFF"),     # Pure White Cards
+        hud_color=rio.Color.from_hex("#E2E8F0"),         # Light Gray Elevated Container
+        success_color=rio.Color.from_hex("#059669"),     # Rich Emerald
+        warning_color=rio.Color.from_hex("#D97706"),     # Warm Amber
+        danger_color=rio.Color.from_hex("#E11D48"),      # Crisp Red
+        text_color=rio.Color.from_hex("#0F172A"),        # Deep Charcoal Text
+        corner_radius_small=0.4,
+        corner_radius_medium=0.6,
+        corner_radius_large=0.8,
+    )
+
+
+def create_app_theme() -> tuple[rio.Theme, rio.Theme]:
+    """Returns dual (light, dark) theme pair for the Rio application."""
+    return (create_light_theme(), create_dark_theme())
 
 
 # Palette tokens for custom fills

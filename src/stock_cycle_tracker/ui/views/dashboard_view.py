@@ -1,4 +1,4 @@
-"""Polished, modern Dashboard view component with zero horizontal scrollbar on standard desktop zoom and responsive mobile cards."""
+"""Polished, modern Dashboard view component with zero horizontal scrollbar and clean Upside/Downside bucket filter."""
 
 from __future__ import annotations
 
@@ -48,8 +48,6 @@ class DashboardView(rio.Component):
                 analyses = [a for a in analyses if "upside" in a.bucket.lower()]
             elif self.bucket_filter == "DOWNSIDE":
                 analyses = [a for a in analyses if "downside" in a.bucket.lower()]
-            elif self.bucket_filter == "UNCLASSIFIED":
-                analyses = [a for a in analyses if "unclassified" in a.bucket.lower() or "within" in a.bucket.lower()]
 
         # Apply exchange filter
         if self.exchange_filter != "ALL":
@@ -256,7 +254,7 @@ class DashboardView(rio.Component):
                 grow_x=True,
             )
 
-        # Toolbar Filter Bar
+        # Toolbar Filter Bar (Removed UNCLASSIFIED from options)
         toolbar_elements: list[rio.Component] = [
             rio.TextInput(
                 label="Search Symbol or Company",
@@ -265,7 +263,7 @@ class DashboardView(rio.Component):
                 grow_x=True,
             ),
             rio.Dropdown(
-                options=["ALL", "UPSIDE", "DOWNSIDE", "UNCLASSIFIED"],
+                options=["ALL", "UPSIDE", "DOWNSIDE"],
                 selected_value=self.bind().bucket_filter,
                 label="Bucket Filter",
             ),
@@ -313,7 +311,7 @@ class DashboardView(rio.Component):
             grow_x=True,
         )
 
-        # Data Display Section (Zero-scroll Mobile Cards vs Compact Zero-Scroll Desktop Table)
+        # Data Display Section (Zero-scroll Mobile Cards vs Compact Desktop Table)
         data_content: rio.Component
 
         if not analyses:
@@ -341,7 +339,6 @@ class DashboardView(rio.Component):
                 grow_x=True,
             )
         elif is_mobile:
-            # Dedicated Mobile Card List (Zero Horizontal Scrollbar)
             mobile_cards: list[rio.Component] = []
             for item in analyses:
                 chg_col = get_change_color(item.percentage_change)
@@ -473,7 +470,7 @@ class DashboardView(rio.Component):
                 margin_bottom=1.5,
             )
         else:
-            # Desktop Table View (Optimized widths to prevent horizontal scrollbar on default 100% zoom)
+            # Desktop Table View
             table_rows: list[rio.Component] = []
 
             # Table Header

@@ -1,4 +1,4 @@
-"""Root Rio Application and navigation container with high-visibility mobile hamburger drawer."""
+"""Root Rio Application and navigation container with dual light/dark theme switching and mobile hamburger drawer."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from stock_cycle_tracker.ui.theme import (
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
     create_app_theme,
+    create_dark_theme,
+    create_light_theme,
 )
 from stock_cycle_tracker.ui.views.alerts_view import AlertsView
 from stock_cycle_tracker.ui.views.dashboard_view import DashboardView
@@ -24,11 +26,12 @@ from stock_cycle_tracker.ui.views.stock_detail_view import StockDetailView
 
 
 class RootComponent(rio.Component):
-    """Main application frame with responsive dark navigation bar and high-visibility mobile hamburger menu."""
+    """Main application frame with responsive navigation bar, light/dark theme toggle, and mobile drawer."""
 
     active_page: str = "dashboard"
     selected_stock: Optional[str] = None
     is_mobile_menu_open: bool = False
+    is_dark_mode: bool = True
 
     def navigate(self, page_name: str, stock_symbol: Optional[str] = None) -> None:
         self.active_page = page_name
@@ -37,6 +40,10 @@ class RootComponent(rio.Component):
 
     def _toggle_mobile_menu(self) -> None:
         self.is_mobile_menu_open = not self.is_mobile_menu_open
+
+    def _toggle_theme(self) -> None:
+        self.is_dark_mode = not self.is_dark_mode
+        self.session.theme = "dark" if self.is_dark_mode else "light"
 
     def _build_nav_button(self, label: str, icon: str, page_name: str, is_mobile: bool = False) -> rio.Component:
         is_active = self.active_page == page_name
@@ -57,7 +64,7 @@ class RootComponent(rio.Component):
         # Build Navbar Header
         header_content: rio.Component
         if is_mobile:
-            # Mobile Header: Logo + Title + Bright High-Contrast Hamburger Icon Button
+            # Mobile Header: Logo + Title + Theme Toggle + High-Contrast Hamburger Button
             mobile_top_bar = rio.Row(
                 rio.Row(
                     rio.Icon(
@@ -88,6 +95,16 @@ class RootComponent(rio.Component):
                 rio.Spacer(),
                 rio.Button(
                     "",
+                    icon="material/light-mode" if self.is_dark_mode else "material/dark-mode",
+                    shape="circle",
+                    style="minor",
+                    color="neutral",
+                    min_height=2.2,
+                    min_width=2.2,
+                    on_press=self._toggle_theme,
+                ),
+                rio.Button(
+                    "",
                     icon="material/close" if self.is_mobile_menu_open else "material/menu",
                     style="major",
                     color="primary",
@@ -103,7 +120,6 @@ class RootComponent(rio.Component):
                 grow_x=True,
             )
 
-            # If hamburger menu is open, show vertical collapsible drawer
             if self.is_mobile_menu_open:
                 menu_drawer = rio.Column(
                     rio.Separator(),
@@ -126,7 +142,7 @@ class RootComponent(rio.Component):
             else:
                 header_content = mobile_top_bar
         else:
-            # Desktop Header: Logo + Title on left, Nav pills on right
+            # Desktop Header: Logo + Title on left, Nav pills + Theme Toggle on right
             header_content = rio.Row(
                 rio.Row(
                     rio.Icon(
@@ -160,6 +176,16 @@ class RootComponent(rio.Component):
                     self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
                     self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
                     self._build_nav_button("Alerts", "material/notifications", "alerts"),
+                    rio.Button(
+                        "",
+                        icon="material/light-mode" if self.is_dark_mode else "material/dark-mode",
+                        shape="circle",
+                        style="minor",
+                        color="neutral",
+                        min_height=2.2,
+                        min_width=2.2,
+                        on_press=self._toggle_theme,
+                    ),
                     spacing=0.4,
                     align_y=0.5,
                 ),
@@ -208,7 +234,7 @@ class RootComponent(rio.Component):
 
 
 def build_app(db_path: Optional[str] = None) -> rio.App:
-    """Factory creating the configured Rio Application with custom dark theme."""
+    """Factory creating the configured Rio Application with custom dual light/dark theme."""
     ServiceContainer.get(db_path=db_path)
 
     return rio.App(

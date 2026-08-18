@@ -13,6 +13,7 @@ from stock_cycle_tracker.providers.composite import CompositeMarketDataProvider
 from stock_cycle_tracker.services.alert_service import AlertService
 from stock_cycle_tracker.services.cycle_service import CycleService
 from stock_cycle_tracker.services.excel_service import ExcelService
+from stock_cycle_tracker.services.stock_search_service import StockSearchService
 from stock_cycle_tracker.storage.db import DatabaseManager
 from stock_cycle_tracker.storage.repository import StockCycleRepository
 
@@ -30,6 +31,7 @@ class ServiceContainer:
         self.cycle_service = CycleService(self.repository, self.provider, self.engine)
         self.excel_service = ExcelService()
         self.alert_service = AlertService(self.db_manager)
+        self.stock_search_service = StockSearchService()
 
     @classmethod
     def get(cls, db_path: Optional[str] = None) -> ServiceContainer:

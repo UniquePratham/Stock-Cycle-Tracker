@@ -1,4 +1,4 @@
-"""Manage Stocks and Cycles component with optimized full-width form, intelligent stock resolution, and zero-overflow layout."""
+"""Manage Stocks and Cycles component with debounced autocomplete, full-width inputs, and zero-overflow layout."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 import rio
 
+from stock_cycle_tracker.ui.components.stock_autocomplete import StockAutocompleteInput
 from stock_cycle_tracker.ui.state import ServiceContainer
 from stock_cycle_tracker.ui.theme import (
     COLOR_BORDER,
@@ -28,6 +29,9 @@ class ManageCyclesView(rio.Component):
     feedback_message: str = ""
     feedback_is_error: bool = False
     is_submitting: bool = False
+
+    def _on_stock_selected(self, symbol: str, name: str) -> None:
+        self.stock_input = symbol
 
     async def _on_add_cycle(self) -> None:
         raw_sym = self.stock_input.strip()
@@ -125,7 +129,7 @@ class ManageCyclesView(rio.Component):
             ),
             rio.Column(
                 rio.Text("Add New Research Date Cycle", font_size=1.0 if is_mobile else 1.2, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                rio.Text("Enter a stock ticker or company name and historical research anchor date", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
+                rio.Text("Enter a stock ticker or company name with live debounced auto-complete", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
                 spacing=0.02,
                 align_x=0.0,
             ),
@@ -135,13 +139,14 @@ class ManageCyclesView(rio.Component):
             grow_x=False,
         )
 
-        # Input Layout (Optimally full width on PC, stacked on Mobile)
+        # Input Layout with Debounced Stock Autocomplete
         form_inputs: rio.Component
         if is_mobile:
             form_inputs = rio.Column(
-                rio.TextInput(
+                StockAutocompleteInput(
                     label="Stock Symbol / Name (e.g. RELIANCE, TCS)",
-                    text=self.bind().stock_input,
+                    text=self.stock_input,
+                    on_select=self._on_stock_selected,
                     grow_x=True,
                 ),
                 rio.TextInput(
@@ -165,9 +170,10 @@ class ManageCyclesView(rio.Component):
             )
         else:
             form_inputs = rio.Row(
-                rio.TextInput(
+                StockAutocompleteInput(
                     label="Stock Symbol / Name (e.g. RELIANCE, TCS, Tata Motors)",
-                    text=self.bind().stock_input,
+                    text=self.stock_input,
+                    on_select=self._on_stock_selected,
                     grow_x=True,
                 ),
                 rio.TextInput(

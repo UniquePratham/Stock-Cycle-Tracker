@@ -1,4 +1,4 @@
-"""Alerts configuration and monitoring view component with left-aligned headers, rich PC typography, and zero-overflow mobile layout."""
+"""Alerts configuration and monitoring view component with debounced autocomplete, quick presets, left-aligned event cards, and zero-overflow layout."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Callable, Optional
 import rio
 
 from stock_cycle_tracker.services.alert_service import AlertConditionType
+from stock_cycle_tracker.ui.components.stock_autocomplete import StockAutocompleteInput
 from stock_cycle_tracker.ui.state import ServiceContainer
 from stock_cycle_tracker.ui.theme import (
     COLOR_BORDER,
@@ -30,8 +31,16 @@ class AlertsView(rio.Component):
     target_bucket_input: str = ""
     status_message: str = ""
 
+    def _on_stock_selected(self, symbol: str, name: str) -> None:
+        self.stock_input = symbol
+
+    def _apply_preset(self, condition: str, threshold: str) -> None:
+        self.condition_type_input = condition
+        self.threshold_input = threshold
+        self.status_message = f"Applied Preset: {condition} at {threshold}%"
+
     def _on_add_alert(self) -> None:
-        sym = self.stock_input.strip().upper()
+        sym = self.stock_input.strip().upper().replace(" ", "")
         if not sym:
             self.status_message = "Please enter a stock symbol."
             return
@@ -93,6 +102,48 @@ class AlertsView(rio.Component):
             grow_x=True,
         )
 
+        # Quick Preset Buttons Row
+        presets_row = rio.FlowContainer(
+            rio.Text("Quick Trigger Presets:", font_weight="bold", font_size=0.82 if is_mobile else 0.9, fill=COLOR_TEXT_MUTED, align_y=0.5),
+            rio.Button(
+                "Downside -5% Alert",
+                shape="rounded",
+                style="minor",
+                color="neutral",
+                min_height=2.0,
+                on_press=lambda: self._apply_preset("PERCENTAGE_BELOW", "-5.0"),
+            ),
+            rio.Button(
+                "Downside -10% Alert",
+                shape="rounded",
+                style="minor",
+                color="neutral",
+                min_height=2.0,
+                on_press=lambda: self._apply_preset("PERCENTAGE_BELOW", "-10.0"),
+            ),
+            rio.Button(
+                "Upside +10% Breakout",
+                shape="rounded",
+                style="minor",
+                color="neutral",
+                min_height=2.0,
+                on_press=lambda: self._apply_preset("PERCENTAGE_ABOVE", "10.0"),
+            ),
+            rio.Button(
+                "Upside +15% Surge",
+                shape="rounded",
+                style="minor",
+                color="neutral",
+                min_height=2.0,
+                on_press=lambda: self._apply_preset("PERCENTAGE_ABOVE", "15.0"),
+            ),
+            spacing=0.4,
+            row_spacing=0.25,
+            column_spacing=0.4,
+            align_y=0.5,
+            grow_x=True,
+        )
+
         # Left-aligned Section Title Row
         form_title_row = rio.Row(
             rio.Icon(
@@ -109,7 +160,7 @@ class AlertsView(rio.Component):
                     fill=COLOR_TEXT_PRIMARY,
                 ),
                 rio.Text(
-                    "Set triggers for percentage moves or bucket crossings",
+                    "Set triggers for percentage moves with debounced stock selection",
                     font_size=0.75 if is_mobile else 0.85,
                     fill=COLOR_TEXT_MUTED,
                 ),
@@ -122,60 +173,109 @@ class AlertsView(rio.Component):
             grow_x=False,
         )
 
-        # Create Alert Card
+        # Create Alert Card Form Inputs
+        form_inputs: rio.Component
+        if is_mobile:
+            form_inputs = rio.Column(
+                StockAutocompleteInput(
+                    label="Stock Symbol / Name (e.g. RELIANCE)",
+                    text=self.stock_input,
+                    on_select=self._on_stock_selected,
+                    grow_x=True,
+                ),
+                rio.Row(
+                    rio.TextInput(
+                        label="Cycle #",
+                        text=self.bind().cycle_num_input,
+                        min_width=4.0,
+                        grow_x=True,
+                    ),
+                    rio.TextInput(
+                        label="Threshold (%)",
+                        text=self.bind().threshold_input,
+                        min_width=6.0,
+                        grow_x=True,
+                    ),
+                    spacing=0.3,
+                    grow_x=True,
+                ),
+                rio.Dropdown(
+                    options=[
+                        "PERCENTAGE_BELOW",
+                        "PERCENTAGE_ABOVE",
+                        "BUCKET_MATCH",
+                        "REF_HIGH_CROSSED",
+                    ],
+                    selected_value=self.bind().condition_type_input,
+                    label="Condition Type",
+                ),
+                rio.Button(
+                    "Save Alert Rule",
+                    icon="material/notifications-active",
+                    shape="rounded",
+                    style="major",
+                    color="primary",
+                    min_height=2.2,
+                    grow_x=True,
+                    on_press=self._on_add_alert,
+                ),
+                spacing=0.35,
+                grow_x=True,
+            )
+        else:
+            form_inputs = rio.Row(
+                StockAutocompleteInput(
+                    label="Stock Symbol (e.g. RELIANCE)",
+                    text=self.stock_input,
+                    on_select=self._on_stock_selected,
+                    grow_x=True,
+                ),
+                rio.TextInput(
+                    label="Cycle #",
+                    text=self.bind().cycle_num_input,
+                    min_width=5.0,
+                ),
+                rio.Dropdown(
+                    options=[
+                        "PERCENTAGE_BELOW",
+                        "PERCENTAGE_ABOVE",
+                        "BUCKET_MATCH",
+                        "REF_HIGH_CROSSED",
+                    ],
+                    selected_value=self.bind().condition_type_input,
+                    label="Condition Type",
+                ),
+                rio.TextInput(
+                    label="Threshold (%)",
+                    text=self.bind().threshold_input,
+                    min_width=8.0,
+                ),
+                rio.Button(
+                    "Save Alert Rule",
+                    icon="material/notifications-active",
+                    shape="rounded",
+                    style="major",
+                    color="primary",
+                    min_height=2.6,
+                    min_width=11.0,
+                    on_press=self._on_add_alert,
+                ),
+                spacing=0.6,
+                align_y=0.5,
+                grow_x=True,
+            )
+
         form_card = rio.Card(
             rio.Column(
                 form_title_row,
                 rio.Separator(),
-                rio.FlowContainer(
-                    rio.TextInput(
-                        label="Stock Symbol (e.g. RELIANCE)",
-                        text=self.bind().stock_input,
-                        min_width=8.0 if is_mobile else 14.0,
-                        grow_x=True,
-                    ),
-                    rio.TextInput(
-                        label="Cycle #",
-                        text=self.bind().cycle_num_input,
-                        min_width=4.0 if is_mobile else 6.0,
-                    ),
-                    rio.Dropdown(
-                        options=[
-                            "PERCENTAGE_BELOW",
-                            "PERCENTAGE_ABOVE",
-                            "BUCKET_MATCH",
-                            "REF_HIGH_CROSSED",
-                        ],
-                        selected_value=self.bind().condition_type_input,
-                        label="Condition Type",
-                    ),
-                    rio.TextInput(
-                        label="Threshold Value (%)",
-                        text=self.bind().threshold_input,
-                        min_width=5.0 if is_mobile else 10.0,
-                    ),
-                    rio.Button(
-                        "Save Alert Rule",
-                        icon="material/notifications-active",
-                        shape="rounded",
-                        style="major",
-                        color="primary",
-                        min_height=2.2 if is_mobile else 2.6,
-                        grow_x=is_mobile,
-                        on_press=self._on_add_alert,
-                    ),
-                    spacing=0.4 if is_mobile else 0.6,
-                    row_spacing=0.3 if is_mobile else 0.4,
-                    column_spacing=0.4 if is_mobile else 0.6,
-                    justify="left",
-                    align_y=0.5,
-                    grow_x=True,
-                ),
+                presets_row,
+                form_inputs,
                 rio.Text(
                     self.status_message,
                     font_size=0.82 if is_mobile else 0.92,
                     font_weight="bold",
-                    fill=COLOR_UP_STRONG if "successfully" in self.status_message.lower() else rio.Color.from_hex("#3B82F6"),
+                    fill=COLOR_UP_STRONG if "successfully" in self.status_message.lower() or "applied" in self.status_message.lower() else rio.Color.from_hex("#3B82F6"),
                 ) if self.status_message else rio.Spacer(),
                 spacing=0.5 if is_mobile else 0.7,
                 margin=0.6 if is_mobile else 1.0,
@@ -188,7 +288,7 @@ class AlertsView(rio.Component):
             grow_x=True,
         )
 
-        # Triggered Events Banner
+        # Triggered Events Banner (Strict left-alignment)
         triggered_cards: list[rio.Component] = []
         if triggered_events:
             triggered_cards.append(
@@ -205,15 +305,32 @@ class AlertsView(rio.Component):
                 triggered_cards.append(
                     rio.Card(
                         rio.Row(
-                            rio.Icon("material/warning", fill=COLOR_DOWN_STRONG, min_width=1.3 if is_mobile else 1.6, min_height=1.3 if is_mobile else 1.6),
+                            rio.Icon(
+                                "material/warning",
+                                fill=COLOR_DOWN_STRONG,
+                                min_width=1.3 if is_mobile else 1.6,
+                                min_height=1.3 if is_mobile else 1.6,
+                            ),
                             rio.Column(
-                                rio.Text(f"{evt.stock_symbol} (Cycle {evt.cycle_number}) — {evt.condition_summary}", font_weight="bold", font_size=0.9 if is_mobile else 1.05, fill=COLOR_TEXT_PRIMARY),
-                                rio.Text(f"Value: {evt.current_value} | Triggered: {evt.triggered_at.strftime('%Y-%m-%d %H:%M')}", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
+                                rio.Text(
+                                    f"{evt.stock_symbol} (Cycle {evt.cycle_number}) — {evt.condition_summary}",
+                                    font_weight="bold",
+                                    font_size=0.9 if is_mobile else 1.05,
+                                    fill=COLOR_TEXT_PRIMARY,
+                                ),
+                                rio.Text(
+                                    f"Current Value: {evt.current_value} | Triggered: {evt.triggered_at.strftime('%Y-%m-%d %H:%M')}",
+                                    font_size=0.75 if is_mobile else 0.85,
+                                    fill=COLOR_TEXT_MUTED,
+                                ),
                                 spacing=0.03,
+                                align_x=0.0,
                             ),
                             spacing=0.4 if is_mobile else 0.6,
                             align_y=0.5,
+                            align_x=0.0,
                             margin=0.6 if is_mobile else 0.9,
+                            grow_x=False,
                         ),
                         corner_radius=0.4,
                         color="hud",
@@ -340,6 +457,7 @@ class AlertsView(rio.Component):
                             ),
                             rio.Text(f"Condition: {alt.condition_type.value} ({alt.threshold_value}%)", font_size=0.88, fill=COLOR_TEXT_MUTED),
                             spacing=0.04,
+                            align_x=0.0,
                         ),
                         rio.Spacer(),
                         rio.Row(
