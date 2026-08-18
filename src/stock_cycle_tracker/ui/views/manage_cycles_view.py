@@ -1,4 +1,4 @@
-"""Manage Stocks and Cycles component with left-aligned headers, rich PC typography, and zero-overflow mobile layout."""
+"""Manage Stocks and Cycles component with optimized full-width form, intelligent stock resolution, and zero-overflow layout."""
 
 from __future__ import annotations
 
@@ -27,44 +27,58 @@ class ManageCyclesView(rio.Component):
     date_input_str: str = ""
     feedback_message: str = ""
     feedback_is_error: bool = False
+    is_submitting: bool = False
 
-    def _on_add_cycle(self) -> None:
-        sym = self.stock_input.strip().upper()
-        if not sym:
-            self.feedback_message = "Please enter a valid stock symbol or name."
+    async def _on_add_cycle(self) -> None:
+        raw_sym = self.stock_input.strip()
+        if not raw_sym:
+            self.feedback_message = "Please enter a valid stock ticker or company name (e.g. RELIANCE, TCS, Tata Motors)."
             self.feedback_is_error = True
             return
 
         raw_date = self.date_input_str.strip()
         if not raw_date:
-            self.feedback_message = "Please enter a reference research date (e.g. 2014-01-10 or 10-Jan-2014)."
+            self.feedback_message = "Please enter a reference research date (e.g. 10-Jan-2014 or 2014-01-10)."
             self.feedback_is_error = True
             return
 
         container = ServiceContainer.get()
         parsed_dt = container.excel_service._parse_date(raw_date)
         if not parsed_dt:
-            self.feedback_message = f"Could not parse date '{raw_date}'. Please use YYYY-MM-DD or DD-Mon-YYYY."
+            self.feedback_message = f"Could not parse date '{raw_date}'. Please use YYYY-MM-DD, DD-MM-YYYY, or DD-Mon-YYYY."
             self.feedback_is_error = True
             return
 
         if parsed_dt > date.today():
-            self.feedback_message = "Research date cannot be in the future."
+            self.feedback_message = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) cannot be in the future."
             self.feedback_is_error = True
             return
 
+        if parsed_dt.year < 1990:
+            self.feedback_message = f"Research date ({parsed_dt.strftime('%d-%b-%Y')}) must be after 1990."
+            self.feedback_is_error = True
+            return
+
+        self.is_submitting = True
+        self.feedback_message = "Resolving stock and fetching historical cycle data..."
+        self.feedback_is_error = False
+        await self.force_refresh()
+
         try:
             stock, cycle, analysis = container.cycle_service.add_stock_cycle(
-                query=sym,
+                query=raw_sym,
                 reference_date=parsed_dt,
             )
-            self.feedback_message = f"Successfully added {stock.symbol} Cycle {cycle.cycle_number} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
+            self.feedback_message = f"Successfully registered {stock.symbol} ({stock.company_name}) Cycle {cycle.cycle_number} (Ref: {cycle.reference_date.strftime('%d-%b-%Y')})!"
             self.feedback_is_error = False
             self.stock_input = ""
             self.date_input_str = ""
         except Exception as e:
             self.feedback_message = f"Error adding cycle: {e}"
             self.feedback_is_error = True
+        finally:
+            self.is_submitting = False
+            await self.force_refresh()
 
     def _on_delete_cycle(self, cycle_id: int) -> None:
         container = ServiceContainer.get()
@@ -111,7 +125,7 @@ class ManageCyclesView(rio.Component):
             ),
             rio.Column(
                 rio.Text("Add New Research Date Cycle", font_size=1.0 if is_mobile else 1.2, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                rio.Text("Enter a stock ticker (e.g. RELIANCE, TCS) and historical research anchor date", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
+                rio.Text("Enter a stock ticker or company name and historical research anchor date", font_size=0.75 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
                 spacing=0.02,
                 align_x=0.0,
             ),
@@ -121,41 +135,68 @@ class ManageCyclesView(rio.Component):
             grow_x=False,
         )
 
-        # Input Card with FlowContainer
+        # Input Layout (Optimally full width on PC, stacked on Mobile)
+        form_inputs: rio.Component
+        if is_mobile:
+            form_inputs = rio.Column(
+                rio.TextInput(
+                    label="Stock Symbol / Name (e.g. RELIANCE, TCS)",
+                    text=self.bind().stock_input,
+                    grow_x=True,
+                ),
+                rio.TextInput(
+                    label="Research Date (e.g. 10-Jan-2014)",
+                    text=self.bind().date_input_str,
+                    grow_x=True,
+                ),
+                rio.Button(
+                    "Register Cycle",
+                    icon="material/add",
+                    shape="rounded",
+                    style="major",
+                    color="primary",
+                    min_height=2.2,
+                    is_loading=self.is_submitting,
+                    grow_x=True,
+                    on_press=self._on_add_cycle,
+                ),
+                spacing=0.35,
+                grow_x=True,
+            )
+        else:
+            form_inputs = rio.Row(
+                rio.TextInput(
+                    label="Stock Symbol / Name (e.g. RELIANCE, TCS, Tata Motors)",
+                    text=self.bind().stock_input,
+                    grow_x=True,
+                ),
+                rio.TextInput(
+                    label="Research Anchor Date (e.g. 10-Jan-2014, 2014-01-10)",
+                    text=self.bind().date_input_str,
+                    min_width=18.0,
+                    grow_x=True,
+                ),
+                rio.Button(
+                    "Register Cycle",
+                    icon="material/add",
+                    shape="rounded",
+                    style="major",
+                    color="primary",
+                    min_height=2.6,
+                    min_width=11.0,
+                    is_loading=self.is_submitting,
+                    on_press=self._on_add_cycle,
+                ),
+                spacing=0.8,
+                align_y=0.5,
+                grow_x=True,
+            )
+
         form_card = rio.Card(
             rio.Column(
                 form_title_row,
                 rio.Separator(),
-                rio.FlowContainer(
-                    rio.TextInput(
-                        label="Stock Symbol / Name (e.g. RELIANCE)",
-                        text=self.bind().stock_input,
-                        min_width=10.0 if is_mobile else 18.0,
-                        grow_x=True,
-                    ),
-                    rio.TextInput(
-                        label="Research Date (e.g. 10-Jan-2014)",
-                        text=self.bind().date_input_str,
-                        min_width=10.0 if is_mobile else 16.0,
-                        grow_x=True,
-                    ),
-                    rio.Button(
-                        "Register Cycle",
-                        icon="material/add",
-                        shape="rounded",
-                        style="major",
-                        color="primary",
-                        min_height=2.2 if is_mobile else 2.6,
-                        grow_x=is_mobile,
-                        on_press=self._on_add_cycle,
-                    ),
-                    spacing=0.4 if is_mobile else 0.6,
-                    row_spacing=0.3 if is_mobile else 0.4,
-                    column_spacing=0.4 if is_mobile else 0.6,
-                    justify="left",
-                    align_y=0.5,
-                    grow_x=True,
-                ),
+                form_inputs,
                 rio.Text(
                     self.feedback_message,
                     font_size=0.82 if is_mobile else 0.92,
@@ -246,17 +287,17 @@ class ManageCyclesView(rio.Component):
                         cycles_rows.append(
                             rio.Card(
                                 rio.Row(
-                                    rio.Text(f"Cycle {c.cycle_number}", font_weight="bold", font_size=0.95, fill=COLOR_TEXT_PRIMARY, min_width=7.0),
+                                    rio.Text(f"Cycle {c.cycle_number}", font_weight="bold", font_size=0.95, fill=COLOR_TEXT_PRIMARY, min_width=6.0),
                                     rio.Column(
-                                        rio.Text("Original Research Date", font_size=0.75, fill=COLOR_TEXT_DIM),
+                                        rio.Text("Original Research Date", font_size=0.72, fill=COLOR_TEXT_DIM),
                                         rio.Text(c.reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                                        min_width=14.0,
+                                        min_width=12.0,
                                         spacing=0.03,
                                     ),
                                     rio.Column(
-                                        rio.Text("Annual Recurrence", font_size=0.75, fill=COLOR_TEXT_DIM),
+                                        rio.Text("Annual Recurrence", font_size=0.72, fill=COLOR_TEXT_DIM),
                                         rio.Text(c.recurring_formatted, font_size=0.92, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                                        min_width=12.0,
+                                        min_width=10.0,
                                         spacing=0.03,
                                     ),
                                     rio.Spacer(),

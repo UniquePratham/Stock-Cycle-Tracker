@@ -1,4 +1,4 @@
-"""Polished, modern Dashboard view component with rich PC typography and zero-scroll mobile cards."""
+"""Polished, modern Dashboard view component with zero horizontal scrollbar on standard desktop zoom and responsive mobile cards."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class DashboardView(rio.Component):
-    """Main Cycle Analysis Dashboard with responsive desktop table and zero-scroll mobile cards."""
+    """Main Cycle Analysis Dashboard with zero horizontal scrollbar on PC and zero-scroll mobile cards."""
 
     on_navigate: Callable[[str, Optional[str]], None]
     search_query: str = ""
@@ -313,7 +313,7 @@ class DashboardView(rio.Component):
             grow_x=True,
         )
 
-        # Data Display Section (Zero-scroll Mobile Cards vs Desktop Table)
+        # Data Display Section (Zero-scroll Mobile Cards vs Compact Zero-Scroll Desktop Table)
         data_content: rio.Component
 
         if not analyses:
@@ -473,27 +473,27 @@ class DashboardView(rio.Component):
                 margin_bottom=1.5,
             )
         else:
-            # Desktop Table View
+            # Desktop Table View (Optimized widths to prevent horizontal scrollbar on default 100% zoom)
             table_rows: list[rio.Component] = []
 
             # Table Header
             header_row = rio.Card(
                 rio.Row(
-                    rio.Text("STOCK & EXCHANGE", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=14.0),
-                    rio.Text("CYCLE", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=5.5),
-                    rio.Text("RESEARCH DATE (LD)", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=11.0),
-                    rio.Text("TRADING DATE", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=10.0),
-                    rio.Text("REF HIGH", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=9.0),
-                    rio.Text("CURRENT PRICE", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=9.0),
-                    rio.Text("MODE", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=5.5),
-                    rio.Text("% CHANGE", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=8.0),
-                    rio.Text("BUCKET CLASSIFICATION", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=14.0),
+                    rio.Text("STOCK & EXCHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=10.5),
+                    rio.Text("CYCLE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=4.0),
+                    rio.Text("RESEARCH DATE (LD)", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.5),
+                    rio.Text("TRADING DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.5),
+                    rio.Text("REF HIGH", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.5),
+                    rio.Text("CURRENT PRICE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.5),
+                    rio.Text("MODE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=4.2),
+                    rio.Text("% CHANGE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=5.5),
+                    rio.Text("BUCKET CLASSIFICATION", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.0),
                     rio.Spacer(),
-                    rio.Text("CHART", font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=5.5),
-                    spacing=0.6,
+                    rio.Text("CHART", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=4.5),
+                    spacing=0.4,
                     align_y=0.5,
-                    margin_x=0.9,
-                    margin_y=0.45,
+                    margin_x=0.7,
+                    margin_y=0.35,
                 ),
                 corner_radius=0.4,
                 color="hud",
@@ -512,82 +512,82 @@ class DashboardView(rio.Component):
                         # Stock & Exchange
                         rio.Column(
                             rio.Row(
-                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.05, fill=COLOR_TEXT_PRIMARY),
+                                rio.Text(item.stock_symbol, font_weight="bold", font_size=1.0, fill=COLOR_TEXT_PRIMARY),
                                 rio.Card(
                                     rio.Text(
                                         item.exchange,
-                                        font_size=0.7,
+                                        font_size=0.65,
                                         font_weight="bold",
                                         fill=rio.Color.from_hex("#60A5FA"),
-                                        margin_x=0.35,
-                                        margin_y=0.1,
+                                        margin_x=0.3,
+                                        margin_y=0.08,
                                     ),
-                                    corner_radius=0.25,
+                                    corner_radius=0.2,
                                     color="hud",
                                     grow_x=False,
                                     grow_y=False,
                                     align_x=0.0,
                                     align_y=0.5,
                                 ),
-                                spacing=0.3,
+                                spacing=0.25,
                                 align_y=0.5,
                                 align_x=0.0,
                                 grow_x=False,
                             ),
-                            rio.Text(item.company_name[:24], font_size=0.82, fill=COLOR_TEXT_DIM),
-                            min_width=14.0,
-                            spacing=0.04,
+                            rio.Text(item.company_name[:20], font_size=0.75, fill=COLOR_TEXT_DIM),
+                            min_width=10.5,
+                            spacing=0.02,
                         ),
                         # Cycle Number
-                        rio.Text(f"Cycle {item.cycle_number}", font_size=0.92, font_weight="bold", fill=COLOR_TEXT_MUTED, min_width=5.5),
+                        rio.Text(f"Cycle {item.cycle_number}", font_size=0.88, font_weight="bold", fill=COLOR_TEXT_MUTED, min_width=4.0),
                         # Original LD
                         rio.Column(
-                            rio.Text(item.original_reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
-                            rio.Text(f"Recur: {item.recurring_reference_date.strftime('%d-%b')}", font_size=0.78, fill=COLOR_TEXT_DIM),
-                            min_width=11.0,
-                            spacing=0.04,
+                            rio.Text(item.original_reference_date.strftime("%d-%b-%Y"), font_size=0.88, font_weight="bold", fill=COLOR_TEXT_PRIMARY),
+                            rio.Text(f"Recur: {item.recurring_reference_date.strftime('%d-%b')}", font_size=0.72, fill=COLOR_TEXT_DIM),
+                            min_width=8.5,
+                            spacing=0.02,
                         ),
                         # Actual Trading Date
-                        rio.Text(item.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.92, fill=COLOR_TEXT_PRIMARY, min_width=10.0),
+                        rio.Text(item.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.88, fill=COLOR_TEXT_PRIMARY, min_width=7.5),
                         # Ref High
-                        rio.Text(f"₹{item.reference_high:,.2f}", font_size=0.95, font_weight="bold", fill=COLOR_TEXT_PRIMARY, min_width=9.0),
+                        rio.Text(f"₹{item.reference_high:,.2f}", font_size=0.9, font_weight="bold", fill=COLOR_TEXT_PRIMARY, min_width=6.5),
                         # Current Price
-                        rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=1.05, fill=COLOR_TEXT_PRIMARY, min_width=9.0),
+                        rio.Text(f"₹{item.current_price:,.2f}", font_weight="bold", font_size=0.98, fill=COLOR_TEXT_PRIMARY, min_width=6.5),
                         # Price Mode Badge
                         rio.Card(
                             rio.Text(
                                 item.price_type.value,
-                                font_size=0.72,
+                                font_size=0.68,
                                 font_weight="bold",
                                 fill=price_badge_col,
-                                margin_x=0.4,
-                                margin_y=0.12,
+                                margin_x=0.35,
+                                margin_y=0.1,
                             ),
-                            corner_radius=0.3,
+                            corner_radius=0.25,
                             color="hud",
-                            min_width=5.5,
+                            min_width=4.2,
                         ),
                         # % Change
                         rio.Text(
                             f"{item.percentage_change:+.2f}%",
                             font_weight="bold",
-                            font_size=1.05,
+                            font_size=0.98,
                             fill=chg_col,
-                            min_width=8.0,
+                            min_width=5.5,
                         ),
                         # Bucket Chip
                         rio.Card(
                             rio.Text(
                                 item.bucket,
-                                font_size=0.82,
+                                font_size=0.78,
                                 font_weight="bold",
                                 fill=bucket_col,
-                                margin_x=0.5,
-                                margin_y=0.2,
+                                margin_x=0.4,
+                                margin_y=0.15,
                             ),
-                            corner_radius=0.3,
+                            corner_radius=0.25,
                             color="hud",
-                            min_width=14.0,
+                            min_width=9.0,
                         ),
                         rio.Spacer(),
                         # Action Button
@@ -597,13 +597,14 @@ class DashboardView(rio.Component):
                             shape="rounded",
                             style="minor",
                             color="primary",
-                            min_height=2.2,
+                            min_height=2.0,
+                            min_width=4.5,
                             on_press=lambda s=sym: self.on_navigate("stock_detail", s),
                         ),
-                        spacing=0.6,
+                        spacing=0.4,
                         align_y=0.5,
-                        margin_x=0.9,
-                        margin_y=0.4,
+                        margin_x=0.7,
+                        margin_y=0.35,
                     ),
                     corner_radius=0.4,
                     color="neutral",
@@ -614,7 +615,7 @@ class DashboardView(rio.Component):
 
             data_content = rio.Column(
                 *table_rows,
-                spacing=0.35,
+                spacing=0.3,
                 margin_x=1.2,
                 margin_bottom=1.5,
                 grow_x=True,
