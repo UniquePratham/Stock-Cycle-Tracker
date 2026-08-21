@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Callable, List, Optional
 
 import rio
@@ -32,6 +32,7 @@ class DashboardView(rio.Component):
     exchange_filter: str = "ALL"
     is_refreshing: bool = False
     status_message: str = ""
+    show_market_status: bool = True
 
     # 10s Toast Notification State
     toast_message: str = ""
@@ -58,6 +59,9 @@ class DashboardView(rio.Component):
             self.toast_message = ""
             self.force_refresh()
 
+    def _toggle_market_status(self) -> None:
+        self.show_market_status = not self.show_market_status
+
     def _get_analyses(self) -> List[CycleAnalysis]:
         container = ServiceContainer.get()
         analyses = container.cycle_service.get_dashboard_analyses(force_refresh=self.is_refreshing)
@@ -67,12 +71,17 @@ class DashboardView(rio.Component):
             q = self.search_query.strip().upper()
             analyses = [a for a in analyses if q in a.stock_symbol.upper() or q in a.company_name.upper()]
 
-        # Apply bucket filter (0% and above = UPSIDE, below 0% = DOWNSIDE)
+        # Apply bucket filter
         if self.bucket_filter != "ALL":
-            if self.bucket_filter == "UPSIDE":
+            if self.bucket_filter in ("All Upside (≥0%)", "UPSIDE"):
                 analyses = [a for a in analyses if a.percentage_change >= 0.0]
-            elif self.bucket_filter == "DOWNSIDE":
+            elif self.bucket_filter in ("All Downside (<0%)", "DOWNSIDE"):
                 analyses = [a for a in analyses if a.percentage_change < 0.0]
+            else:
+                def norm_b(s: str) -> str:
+                    return s.replace("–", "-").replace("—", "-").replace(" ", "").upper()
+                target_b = norm_b(self.bucket_filter)
+                analyses = [a for a in analyses if norm_b(a.bucket) == target_b]
 
         # Apply exchange filter
         if self.exchange_filter != "ALL":
@@ -153,6 +162,62 @@ class DashboardView(rio.Component):
         upside_count = sum(1 for a in analyses if a.percentage_change >= 0.0)
         downside_count = sum(1 for a in analyses if a.percentage_change < 0.0)
 
+        # Accurate Indian Market Open / Close Timings (Mon-Fri 09:15-15:30 IST)
+        now_utc = datetime.now(timezone.utc)
+        ist_time = now_utc + timedelta(hours=5, minutes=30)
+        is_weekday = ist_time.weekday() in (0, 1, 2, 3, 4)
+        current_minute = ist_time.hour * 60 + ist_time.minute
+        is_market_live = is_weekday and ((9 * 60 + 15) <= current_minute < (15 * 60 + 30))
+
+        market_status_text = (
+            "MARKET OPEN (09:15–15:30 IST)"
+            if is_market_live
+            else f"MARKET CLOSED ({'WEEKEND' if not is_weekday else 'PREV CLOSE'})"
+        )
+        market_status_color = COLOR_UP_STRONG if is_market_live else COLOR_TEXT_MUTED
+        market_status_dot = COLOR_UP_STRONG if is_market_live else COLOR_TEXT_DIM
+
+        # Market Status Component with Eye Toggle
+        market_status_widget: rio.Component
+        if self.show_market_status:
+            market_status_widget = rio.Card(
+                rio.Row(
+                    rio.Icon(
+                        "material/fiber-manual-record",
+                        fill=market_status_dot,
+                        min_width=1.0 if is_mobile else 1.3,
+                        min_height=1.0 if is_mobile else 1.3,
+                    ),
+                    rio.Text(
+                        market_status_text if not is_mobile else ("OPEN" if is_market_live else "CLOSED"),
+                        font_size=0.7 if is_mobile else 0.85,
+                        font_weight="bold",
+                        fill=market_status_color,
+                    ),
+                    rio.IconButton(
+                        icon="material/visibility",
+                        style="plain-text",
+                        color="neutral",
+                        min_size=1.6 if is_mobile else 1.8,
+                        on_press=self._toggle_market_status,
+                    ),
+                    spacing=0.25,
+                    align_y=0.5,
+                    margin_x=0.4 if is_mobile else 0.6,
+                    margin_y=0.15,
+                ),
+                corner_radius=0.4,
+                color="hud",
+            )
+        else:
+            market_status_widget = rio.IconButton(
+                icon="material/visibility-off",
+                style="minor",
+                color="neutral",
+                min_size=1.8 if is_mobile else 2.2,
+                on_press=self._toggle_market_status,
+            )
+
         # Header Title Bar
         header_content: rio.Component
         if is_mobile:
@@ -160,28 +225,7 @@ class DashboardView(rio.Component):
                 rio.Row(
                     rio.Text("Cycle Analytics", font_size=1.3, font_weight="bold"),
                     rio.Spacer(),
-                    rio.Card(
-                        rio.Row(
-                            rio.Icon(
-                                "material/fiber-manual-record",
-                                fill=COLOR_UP_STRONG if market_status.value == "OPEN" else COLOR_TEXT_DIM,
-                                min_width=0.8,
-                                min_height=0.8,
-                            ),
-                            rio.Text(
-                                market_status.value,
-                                font_size=0.7,
-                                font_weight="bold",
-                                fill=COLOR_UP_STRONG if market_status.value == "OPEN" else COLOR_TEXT_MUTED,
-                            ),
-                            spacing=0.2,
-                            align_y=0.5,
-                            margin_x=0.4,
-                            margin_y=0.1,
-                        ),
-                        corner_radius=0.3,
-                        color="hud",
-                    ),
+                    market_status_widget,
                     align_y=0.5,
                     grow_x=True,
                 ),
@@ -212,28 +256,7 @@ class DashboardView(rio.Component):
                     align_x=0.0,
                 ),
                 rio.Spacer(),
-                rio.Card(
-                    rio.Row(
-                        rio.Icon(
-                            "material/fiber-manual-record",
-                            fill=COLOR_UP_STRONG if market_status.value == "OPEN" else COLOR_TEXT_DIM,
-                            min_width=1.3,
-                            min_height=1.3,
-                        ),
-                        rio.Text(
-                            f"MARKET {market_status.value} (09:15–15:30 IST)" if market_status.value == "OPEN" else "MARKET CLOSED (PREV CLOSE)",
-                            font_size=0.85,
-                            font_weight="bold",
-                            fill=COLOR_UP_STRONG if market_status.value == "OPEN" else COLOR_TEXT_MUTED,
-                        ),
-                        spacing=0.4,
-                        align_y=0.5,
-                        margin_x=0.8,
-                        margin_y=0.35,
-                    ),
-                    corner_radius=0.4,
-                    color="hud",
-                ),
+                market_status_widget,
                 spacing=1.0,
                 align_y=0.5,
                 margin_x=1.2,
@@ -255,12 +278,13 @@ class DashboardView(rio.Component):
                         ),
                         rio.Text(
                             self.toast_message,
+                            font_size=0.95,
                             font_weight="bold",
-                            font_size=0.88 if is_mobile else 0.95,
                             fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
                         ),
                         rio.Spacer(),
-                        rio.IconButton(
+                        rio.Button(
+                            "",
                             icon="material/close",
                             style="plain-text",
                             color="neutral",
@@ -383,7 +407,21 @@ class DashboardView(rio.Component):
                 grow_x=True,
             ),
             rio.Dropdown(
-                options=["ALL", "UPSIDE", "DOWNSIDE"],
+                options=[
+                    "ALL",
+                    "All Upside (≥0%)",
+                    "All Downside (<0%)",
+                    "Upside >20%",
+                    "Upside 15–20%",
+                    "Upside 10–15%",
+                    "Upside 5–10%",
+                    "Upside 0–5%",
+                    "Downside 0–5%",
+                    "Downside 5–10%",
+                    "Downside 10–15%",
+                    "Downside 15–20%",
+                    "Downside >20%",
+                ],
                 selected_value=self.bind().bucket_filter,
                 label="Bucket Filter",
             ),

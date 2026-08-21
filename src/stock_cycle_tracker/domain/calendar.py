@@ -64,22 +64,22 @@ class TradingCalendar:
         self,
         target_date: date,
         known_trading_days: Optional[Sequence[date]] = None,
-        max_lookahead_days: int = 30,
+        max_lookahead_days: int = 15,
     ) -> date:
         """
         Finds the first available trading day on or after target_date.
-        If known_trading_days is provided, finds the minimum date >= target_date.
+        If known_trading_days is provided, finds the minimum date >= target_date within max_lookahead_days.
         Otherwise iterates day by day checking weekends and holidays.
         """
         if known_trading_days:
-            # Sorted search if known trading days provided
-            future_days = [d for d in known_trading_days if d >= target_date]
+            max_limit = target_date + timedelta(days=max_lookahead_days)
+            future_days = [d for d in known_trading_days if target_date <= d <= max_limit]
             if future_days:
                 return min(future_days)
 
         current = target_date
         for _ in range(max_lookahead_days):
-            if self.is_trading_day(current, known_trading_days=known_trading_days):
+            if not self.is_weekend(current) and not self.is_holiday(current):
                 return current
             current += timedelta(days=1)
 

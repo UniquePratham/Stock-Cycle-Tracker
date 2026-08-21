@@ -216,7 +216,7 @@ class CycleService:
         end_date = date.today()
         start_date = end_date - timedelta(days=lookback_days)
         ohlc = self.repo.get_cached_ohlc(stock.symbol, start_date, end_date)
-        if not ohlc or len(ohlc) < 20:
+        if not ohlc or len(ohlc) < min(20, lookback_days // 3):
             ohlc = list(self.provider.get_historical_ohlc(stock, start_date, end_date))
             if ohlc:
                 self.repo.save_cached_ohlc(stock.symbol, ohlc)
@@ -248,11 +248,23 @@ class CycleService:
         fetch_end = calc_date + timedelta(days=1)
 
         # Check SQLite cache first
-        ohlc = self.repo.get_cached_ohlc(stock.symbol, fetch_start, fetch_end)
-        if not ohlc:
-            ohlc = list(self.provider.get_historical_ohlc(stock, fetch_start, fetch_end))
-            if ohlc:
-                self.repo.save_cached_ohlc(stock.symbol, ohlc)
+        ohlc = list(self.repo.get_cached_ohlc(stock.symbol, fetch_start, fetch_end))
+        
+        # Verify that we have bars covering the reference window around recurring_ref_date
+        has_ref_bars = any(recurring_ref_date <= b.date <= recurring_ref_date + timedelta(days=15) for b in ohlc)
+        if not has_ref_bars or not ohlc:
+            ref_window_start = recurring_ref_date - timedelta(days=5)
+            ref_window_end = recurring_ref_date + timedelta(days=15)
+            new_bars = list(self.provider.get_historical_ohlc(stock, ref_window_start, ref_window_end))
+            if new_bars:
+                self.repo.save_cached_ohlc(stock.symbol, new_bars)
+                # Re-query cached ohlc
+                ohlc = list(self.repo.get_cached_ohlc(stock.symbol, fetch_start, fetch_end))
+            elif not ohlc:
+                full_bars = list(self.provider.get_historical_ohlc(stock, fetch_start, fetch_end))
+                if full_bars:
+                    self.repo.save_cached_ohlc(stock.symbol, full_bars)
+                    ohlc = full_bars
 
         # Get current price
         current_price, price_type, _ = self.provider.get_current_price(stock)

@@ -29,6 +29,12 @@ class StockDetailView(rio.Component):
     on_navigate: Callable[[str, Optional[str]], None]
     selected_cycle_index: int = 0
     overlay_all_cycles: bool = False
+    selected_timeframe: str = "1Yr"
+    show_price: bool = True
+    show_50_dma: bool = True
+    show_200_dma: bool = True
+    show_volume: bool = True
+    show_cycle_anchors: bool = True
 
     def _select_cycle(self, index: int) -> None:
         self.selected_cycle_index = index
@@ -37,13 +43,43 @@ class StockDetailView(rio.Component):
     def _toggle_overlay_all(self) -> None:
         self.overlay_all_cycles = not self.overlay_all_cycles
 
+    def _set_timeframe(self, tf: str) -> None:
+        self.selected_timeframe = tf
+
+    def _toggle_price(self) -> None:
+        self.show_price = not self.show_price
+
+    def _toggle_50_dma(self) -> None:
+        self.show_50_dma = not self.show_50_dma
+
+    def _toggle_200_dma(self) -> None:
+        self.show_200_dma = not self.show_200_dma
+
+    def _toggle_volume(self) -> None:
+        self.show_volume = not self.show_volume
+
+    def _toggle_cycle_anchors(self) -> None:
+        self.show_cycle_anchors = not self.show_cycle_anchors
+
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
         is_portrait = self.session.window_height > self.session.window_width
         is_dark_mode = not getattr(self.session.theme, "is_light_theme", False)
 
+        # Map selected timeframe to lookback days
+        timeframe_days_map = {
+            "1M": 30,
+            "6M": 180,
+            "1Yr": 365,
+            "3Yr": 1095,
+            "5Yr": 1825,
+            "10Yr": 3650,
+            "Max": 7300,
+        }
+        lookback_days = timeframe_days_map.get(self.selected_timeframe, 365)
+
         container = ServiceContainer.get()
-        detail = container.cycle_service.get_stock_detail(self.stock_symbol)
+        detail = container.cycle_service.get_stock_detail(self.stock_symbol, lookback_days=lookback_days)
 
         if not detail:
             return rio.Column(
@@ -82,6 +118,12 @@ class StockDetailView(rio.Component):
             analysis=active_analysis,
             all_analyses=analyses,
             overlay_all=self.overlay_all_cycles,
+            show_price=self.show_price,
+            show_50_dma=self.show_50_dma,
+            show_200_dma=self.show_200_dma,
+            show_volume=self.show_volume,
+            show_cycle_anchors=self.show_cycle_anchors,
+            timeframe_label=self.selected_timeframe,
             is_mobile=is_mobile,
             is_portrait=is_portrait,
             is_dark_mode=is_dark_mode,
@@ -349,11 +391,111 @@ class StockDetailView(rio.Component):
                 grow_x=True,
             )
 
+        # Screener-style Timeframe & Indicator Controls Toolbar
+        timeframe_buttons = []
+        for tf in ["1M", "6M", "1Yr", "3Yr", "5Yr", "10Yr", "Max"]:
+            is_active_tf = self.selected_timeframe == tf
+            timeframe_buttons.append(
+                rio.Button(
+                    tf,
+                    shape="rounded",
+                    style="major" if is_active_tf else "plain-text",
+                    color="primary" if is_active_tf else "neutral",
+                    min_height=1.8,
+                    min_width=2.2 if is_mobile else 2.8,
+                    on_press=lambda t=tf: self._set_timeframe(t),
+                )
+            )
+
+        timeframe_bar = rio.Card(
+            rio.Row(
+                *timeframe_buttons,
+                spacing=0.15,
+                align_y=0.5,
+                margin_x=0.2,
+                margin_y=0.1,
+            ),
+            corner_radius=0.35,
+            color="hud",
+            grow_x=False,
+        )
+
+        indicator_toggles = [
+            rio.Button(
+                "Price",
+                icon="material/show-chart",
+                shape="rounded",
+                style="minor" if self.show_price else "plain-text",
+                color="primary" if self.show_price else "neutral",
+                min_height=1.8,
+                on_press=self._toggle_price,
+            ),
+            rio.Button(
+                "50 DMA",
+                icon="material/timeline",
+                shape="rounded",
+                style="minor" if self.show_50_dma else "plain-text",
+                color="warning" if self.show_50_dma else "neutral",
+                min_height=1.8,
+                on_press=self._toggle_50_dma,
+            ),
+            rio.Button(
+                "200 DMA",
+                icon="material/trending-up",
+                shape="rounded",
+                style="minor" if self.show_200_dma else "plain-text",
+                color="neutral" if self.show_200_dma else "neutral",
+                min_height=1.8,
+                on_press=self._toggle_200_dma,
+            ),
+            rio.Button(
+                "Volume",
+                icon="material/bar-chart",
+                shape="rounded",
+                style="minor" if self.show_volume else "plain-text",
+                color="primary" if self.show_volume else "neutral",
+                min_height=1.8,
+                on_press=self._toggle_volume,
+            ),
+            rio.Button(
+                "Cycle Anchors",
+                icon="material/anchor",
+                shape="rounded",
+                style="minor" if self.show_cycle_anchors else "plain-text",
+                color="success" if self.show_cycle_anchors else "neutral",
+                min_height=1.8,
+                on_press=self._toggle_cycle_anchors,
+            ),
+        ]
+
+        chart_toolbar = rio.Row(
+            timeframe_bar,
+            rio.Spacer(),
+            rio.Row(
+                *indicator_toggles,
+                spacing=0.25,
+                align_y=0.5,
+                wrap=True,
+            ),
+            spacing=0.4,
+            align_y=0.5,
+            margin_x=0.6 if not is_mobile else 0.3,
+            margin_top=0.4,
+            margin_bottom=0.2,
+            grow_x=True,
+            wrap=is_mobile,
+        )
+
         # Plotly Chart Card
         chart_card = rio.Card(
-            rio.Plot(
-                fig,
-                min_height=28.0 if not is_mobile else (36.0 if is_portrait else 22.0),
+            rio.Column(
+                chart_toolbar,
+                rio.Plot(
+                    fig,
+                    min_height=28.0 if not is_mobile else (36.0 if is_portrait else 22.0),
+                    grow_x=True,
+                ),
+                spacing=0.2,
                 grow_x=True,
             ),
             corner_radius=0.5,

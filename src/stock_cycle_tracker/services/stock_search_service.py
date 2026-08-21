@@ -87,6 +87,8 @@ TOP_INDIAN_STOCKS: List[StockSearchResult] = [
     StockSearchResult("ABB", "ABB India Limited", "NSE"),
     StockSearchResult("IRFC", "Indian Railway Finance Corporation", "NSE"),
     StockSearchResult("IOC", "Indian Oil Corporation Limited", "NSE"),
+    StockSearchResult("RELINFRA", "Reliance Infrastructure Limited", "NSE"),
+    StockSearchResult("RPOWER", "Reliance Power Limited", "NSE"),
 ]
 
 
@@ -98,7 +100,7 @@ class StockSearchService:
         self._last_query_time: float = 0.0
 
     def search(self, query: str, limit: int = 6) -> List[StockSearchResult]:
-        """Searches in-memory dictionary first, then falls back to Yahoo Search API."""
+        """Searches in-memory dictionary first, then falls back to Yahoo Search API with NSE priority."""
         q = query.strip().upper().replace(" ", "")
         if not q or len(q) < 1:
             return []
@@ -110,7 +112,7 @@ class StockSearchService:
         results: List[StockSearchResult] = []
         seen_symbols: set[str] = set()
 
-        # 1. Check local top stocks
+        # 1. Check local top stocks (NSE prioritized)
         for s in TOP_INDIAN_STOCKS:
             if q in s.symbol or q in s.company_name.upper().replace(" ", ""):
                 if s.symbol not in seen_symbols:
@@ -120,27 +122,42 @@ class StockSearchService:
                         break
 
         # 2. If fewer than 4 matches and query length >= 2, query Yahoo Finance Search API
-        if len(results) < 4 and len(query.strip()) >= 2:
+        if len(results) < limit and len(query.strip()) >= 2:
             try:
-                url = f"https://query2.finance.yahoo.com/v1/finance/search?q={urllib.parse.quote(query.strip())}&quotesCount=6&newsCount=0"
+                url = f"https://query2.finance.yahoo.com/v1/finance/search?q={urllib.parse.quote(query.strip())}&quotesCount=10&newsCount=0"
                 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
                 with urllib.request.urlopen(req, timeout=3) as resp:
                     data = json.loads(resp.read().decode())
                     quotes = data.get("quotes", [])
+                    
+                    # Split into NSE and BSE buckets to strictly prioritize NSE
+                    nse_items: list[tuple[str, str]] = []
+                    bse_items: list[tuple[str, str]] = []
+                    
                     for item in quotes:
                         sym = item.get("symbol", "")
+                        name = item.get("shortname") or item.get("longname") or sym
                         if sym.endswith(".NS"):
-                            clean_sym = sym[:-3]
-                            if clean_sym not in seen_symbols:
-                                seen_symbols.add(clean_sym)
-                                name = item.get("shortname") or item.get("longname") or clean_sym
-                                results.append(StockSearchResult(clean_sym, name, "NSE"))
+                            nse_items.append((sym[:-3], name))
                         elif sym.endswith(".BO"):
-                            clean_sym = sym[:-3]
+                            bse_items.append((sym[:-3], name))
+                    
+                    # Process NSE first
+                    for clean_sym, name in nse_items:
+                        if clean_sym not in seen_symbols:
+                            seen_symbols.add(clean_sym)
+                            results.append(StockSearchResult(clean_sym, name, "NSE"))
+                            if len(results) >= limit:
+                                break
+                    
+                    # Process BSE second if not already present
+                    if len(results) < limit:
+                        for clean_sym, name in bse_items:
                             if clean_sym not in seen_symbols:
                                 seen_symbols.add(clean_sym)
-                                name = item.get("shortname") or item.get("longname") or clean_sym
                                 results.append(StockSearchResult(clean_sym, name, "BSE"))
+                                if len(results) >= limit:
+                                    break
             except Exception as e:
                 logger.debug(f"Online autocomplete query failed for '{query}': {e}")
 
