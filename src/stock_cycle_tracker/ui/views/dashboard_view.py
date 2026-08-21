@@ -51,13 +51,11 @@ class DashboardView(rio.Component):
         self.toast_is_error = is_error
         self._toast_id += 1
         current_id = self._toast_id
-        self.force_refresh()
 
         # Automatically dismiss toast after 10 seconds
         await asyncio.sleep(10.0)
         if current_id == self._toast_id:
             self.toast_message = ""
-            self.force_refresh()
 
     def _toggle_market_status(self) -> None:
         self.show_market_status = not self.show_market_status
@@ -92,12 +90,10 @@ class DashboardView(rio.Component):
     async def _on_refresh(self) -> None:
         self.is_refreshing = True
         self.status_message = "Updating market prices..."
-        self.force_refresh()
         container = ServiceContainer.get()
         container.cycle_service.get_dashboard_analyses(force_refresh=True)
         self.is_refreshing = False
         self.status_message = ""
-        self.force_refresh()
         await self._show_toast("Market data prices successfully refreshed.", is_error=False)
 
     def _open_quick_add(self, symbol: str, company: str) -> None:
@@ -130,7 +126,6 @@ class DashboardView(rio.Component):
 
         self.is_submitting_cycle = True
         self.quick_add_error = ""
-        self.force_refresh()
 
         sym = self.quick_add_stock_symbol
         try:
@@ -147,7 +142,6 @@ class DashboardView(rio.Component):
             self.quick_add_error = f"Error adding cycle: {e}"
         finally:
             self.is_submitting_cycle = False
-            self.force_refresh()
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
@@ -283,8 +277,7 @@ class DashboardView(rio.Component):
                             fill=COLOR_DOWN_STRONG if self.toast_is_error else COLOR_UP_STRONG,
                         ),
                         rio.Spacer(),
-                        rio.Button(
-                            "",
+                        rio.IconButton(
                             icon="material/close",
                             style="plain-text",
                             color="neutral",
@@ -434,8 +427,8 @@ class DashboardView(rio.Component):
                 "Refresh",
                 icon="material/refresh",
                 shape="rounded",
-                style="minor",
-                color="neutral",
+                style="major",
+                color="secondary",
                 min_height=2.2 if is_mobile else 2.6,
                 on_press=self._on_refresh,
                 is_loading=self.is_refreshing,

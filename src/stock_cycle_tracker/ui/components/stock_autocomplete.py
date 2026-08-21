@@ -42,7 +42,7 @@ class StockAutocompleteInput(rio.Component):
         query_text = event.text
         self.text = query_text
 
-        # Notify parent immediately so typed input is never lost
+        # Notify parent
         if self.on_text_change:
             self.on_text_change(query_text)
 
@@ -62,14 +62,12 @@ class StockAutocompleteInput(rio.Component):
             return
 
         self.is_searching = True
-        self.force_refresh()
 
         container = ServiceContainer.get()
         matches = container.stock_search_service.search(query, limit=5)
 
         self.suggestions = matches
         self.is_searching = False
-        self.force_refresh()
 
     def _select_stock(self, symbol: str, name: str) -> None:
         self.text = symbol
@@ -85,10 +83,11 @@ class StockAutocompleteInput(rio.Component):
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
 
-        # Input field
+        # Input field with stable key to prevent loss of focus
         input_widget = rio.TextInput(
+            key="stock_autocomplete_text_input",
             label=self.label,
-            text=self.text,
+            text=self.bind().text,
             on_change=self._on_input_change,
             min_width=self.min_width,
             grow_x=self.grow_x,

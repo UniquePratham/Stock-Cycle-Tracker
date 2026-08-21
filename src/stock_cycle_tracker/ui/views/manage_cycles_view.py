@@ -51,13 +51,11 @@ class ManageCyclesView(rio.Component):
         self.toast_is_error = is_error
         self._toast_id += 1
         current_id = self._toast_id
-        self.force_refresh()
 
         # Automatically dismiss toast after 10 seconds
         await asyncio.sleep(10.0)
         if current_id == self._toast_id:
             self.toast_message = ""
-            self.force_refresh()
 
     def _on_stock_input_change(self, text: str) -> None:
         self.stock_input = text
@@ -91,7 +89,6 @@ class ManageCyclesView(rio.Component):
             return
 
         self.is_submitting = True
-        self.force_refresh()
 
         try:
             stock, cycle, analysis = container.cycle_service.add_stock_cycle(
@@ -108,7 +105,6 @@ class ManageCyclesView(rio.Component):
             await self._show_toast(f"Error adding cycle: {e}", is_error=True)
         finally:
             self.is_submitting = False
-            self.force_refresh()
 
     # --- Quick Add Cycle Handlers ---
     def _open_quick_add(self, stock_id: int, symbol: str, name: str) -> None:
@@ -143,7 +139,6 @@ class ManageCyclesView(rio.Component):
 
         self.is_submitting = True
         self.quick_add_error = ""
-        self.force_refresh()
 
         sym = self.quick_add_stock_symbol
         try:
@@ -160,7 +155,6 @@ class ManageCyclesView(rio.Component):
             self.quick_add_error = f"Error adding cycle: {e}"
         finally:
             self.is_submitting = False
-            self.force_refresh()
 
     # --- Deletion Confirmation Handlers ---
     def _prompt_delete_cycle(self, cycle_id: int, cycle_num: int, stock_symbol: str, ref_date_str: str) -> None:
@@ -288,13 +282,15 @@ class ManageCyclesView(rio.Component):
         if is_mobile:
             form_inputs = rio.Column(
                 StockAutocompleteInput(
+                    key="manage_cycles_stock_input_mobile",
                     label="Stock Symbol / Name (e.g. RELIANCE, TCS)",
-                    text=self.stock_input,
+                    text=self.bind().stock_input,
                     on_text_change=self._on_stock_input_change,
                     on_select=self._on_stock_selected,
                     grow_x=True,
                 ),
                 rio.TextInput(
+                    key="manage_cycles_date_input_mobile",
                     label="Research Date (e.g. 10-Jan-2014)",
                     text=self.bind().date_input_str,
                     grow_x=True,
@@ -316,13 +312,15 @@ class ManageCyclesView(rio.Component):
         else:
             form_inputs = rio.Row(
                 StockAutocompleteInput(
+                    key="manage_cycles_stock_input_desktop",
                     label="Stock Symbol / Name (e.g. RELIANCE, TCS, Tata Motors)",
-                    text=self.stock_input,
+                    text=self.bind().stock_input,
                     on_text_change=self._on_stock_input_change,
                     on_select=self._on_stock_selected,
                     grow_x=True,
                 ),
                 rio.TextInput(
+                    key="manage_cycles_date_input_desktop",
                     label="Research Anchor Date (e.g. 10-Jan-2014, 2014-01-10)",
                     text=self.bind().date_input_str,
                     min_width=18.0,

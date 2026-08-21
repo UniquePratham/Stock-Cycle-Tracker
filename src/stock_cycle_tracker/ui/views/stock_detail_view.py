@@ -444,7 +444,7 @@ class StockDetailView(rio.Component):
                 icon="material/trending-up",
                 shape="rounded",
                 style="minor" if self.show_200_dma else "plain-text",
-                color="neutral" if self.show_200_dma else "neutral",
+                color="secondary" if self.show_200_dma else "neutral",
                 min_height=1.8,
                 on_press=self._toggle_200_dma,
             ),
@@ -468,23 +468,38 @@ class StockDetailView(rio.Component):
             ),
         ]
 
-        chart_toolbar = rio.Row(
-            timeframe_bar,
-            rio.Spacer(),
-            rio.Row(
-                *indicator_toggles,
-                spacing=0.25,
+        if is_mobile:
+            chart_toolbar = rio.Column(
+                timeframe_bar,
+                rio.FlowContainer(
+                    *indicator_toggles,
+                    spacing=0.25,
+                    row_spacing=0.2,
+                    align_y=0.5,
+                    grow_x=True,
+                ),
+                spacing=0.3,
+                margin_x=0.3,
+                margin_top=0.4,
+                margin_bottom=0.2,
+                grow_x=True,
+            )
+        else:
+            chart_toolbar = rio.Row(
+                timeframe_bar,
+                rio.Spacer(),
+                rio.Row(
+                    *indicator_toggles,
+                    spacing=0.25,
+                    align_y=0.5,
+                ),
+                spacing=0.4,
                 align_y=0.5,
-                wrap=True,
-            ),
-            spacing=0.4,
-            align_y=0.5,
-            margin_x=0.6 if not is_mobile else 0.3,
-            margin_top=0.4,
-            margin_bottom=0.2,
-            grow_x=True,
-            wrap=is_mobile,
-        )
+                margin_x=0.6,
+                margin_top=0.4,
+                margin_bottom=0.2,
+                grow_x=True,
+            )
 
         # Plotly Chart Card
         chart_card = rio.Card(
