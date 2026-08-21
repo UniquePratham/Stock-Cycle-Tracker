@@ -221,7 +221,7 @@ def create_cycle_plotly_figure(
     title_text = (
         f"<b>{symbol}</b> ({timeframe_label})"
         if is_mobile
-        else f"<b>{symbol}</b> — {timeframe_label} Stock Price Action, 50 & 200 DMA, and Volume Analysis"
+        else f"<b>{symbol}</b> <span style='font-size:12px;color:#94A3B8'>({timeframe_label} Timeline)</span>"
     )
 
     # Max volume for yaxis2 range
@@ -253,14 +253,14 @@ def create_cycle_plotly_figure(
         template=template_name,
         paper_bgcolor=paper_bg,
         plot_bgcolor=plot_bg,
-        margin=dict(l=30 if is_mobile else 45, r=10 if is_mobile else 25, t=40 if is_mobile else 45, b=30 if is_mobile else 35),
+        margin=dict(l=45 if is_mobile else 65, r=15 if is_mobile else 35, t=55 if is_mobile else 50, b=35 if is_mobile else 40),
         height=chart_height,
         autosize=True,
         dragmode=False,
         title=dict(
             text=title_text,
-            font=dict(size=12 if is_mobile else 15, color=title_col, family="Roboto, Inter, sans-serif"),
-            x=0.02,
+            font=dict(size=13 if is_mobile else 16, color=title_col, family="Roboto, Inter, sans-serif"),
+            x=0.01,
             y=0.97,
         ),
         legend=dict(
@@ -268,7 +268,7 @@ def create_cycle_plotly_figure(
             yanchor="bottom",
             y=1.02,
             xanchor="right",
-            x=0.98,
+            x=1.0,
             font=dict(color=legend_font_col, size=9 if is_mobile else 11),
             bgcolor=legend_bg,
         ),

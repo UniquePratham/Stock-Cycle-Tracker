@@ -468,26 +468,36 @@ class StockDetailView(rio.Component):
             ),
         ]
 
-        chart_toolbar = rio.FlowContainer(
-            timeframe_bar,
-            rio.FlowContainer(
-                *indicator_toggles,
-                spacing=0.2,
-                row_spacing=0.2,
-                column_spacing=0.2,
+        if is_mobile:
+            chart_toolbar = rio.Column(
+                timeframe_bar,
+                rio.Row(
+                    *indicator_toggles,
+                    spacing=0.2,
+                    align_y=0.5,
+                    grow_x=True,
+                ),
+                spacing=0.3,
+                margin_x=0.4,
+                margin_y=0.25,
+                grow_x=True,
+            )
+        else:
+            chart_toolbar = rio.Row(
+                timeframe_bar,
+                rio.Spacer(),
+                rio.Row(
+                    *indicator_toggles,
+                    spacing=0.25,
+                    align_y=0.5,
+                ),
+                spacing=0.6,
                 align_y=0.5,
-                grow_x=False,
-            ),
-            spacing=0.4,
-            row_spacing=0.3,
-            column_spacing=0.4,
-            justify="justify",
-            align_y=0.5,
-            margin_x=0.4 if is_mobile else 0.6,
-            margin_top=0.4,
-            margin_bottom=0.2,
-            grow_x=True,
-        )
+                margin_x=0.8,
+                margin_top=0.35,
+                margin_bottom=0.15,
+                grow_x=True,
+            )
 
         # Plotly Chart Card
         chart_card = rio.Card(

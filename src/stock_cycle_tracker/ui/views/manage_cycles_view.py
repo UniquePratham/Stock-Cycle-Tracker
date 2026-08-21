@@ -317,6 +317,7 @@ class ManageCyclesView(rio.Component):
                     text=self.bind().stock_input,
                     on_text_change=self._on_stock_input_change,
                     on_select=self._on_stock_selected,
+                    align_y=0.0,
                     grow_x=True,
                 ),
                 rio.TextInput(
@@ -324,21 +325,23 @@ class ManageCyclesView(rio.Component):
                     label="Research Anchor Date (e.g. 10-Jan-2014, 2014-01-10)",
                     text=self.bind().date_input_str,
                     min_width=18.0,
+                    align_y=0.0,
                     grow_x=True,
                 ),
                 rio.Button(
-                    "Register Cycle",
+                    "Add Cycle",
                     icon="material/add",
                     shape="rounded",
                     style="major",
                     color="primary",
                     min_height=2.6,
                     min_width=11.0,
+                    align_y=0.0,
                     is_loading=self.is_submitting,
                     on_press=self._on_add_cycle,
                 ),
                 spacing=0.8,
-                align_y=0.5,
+                align_y=0.0,
                 grow_x=True,
             )
 
@@ -505,7 +508,7 @@ class ManageCyclesView(rio.Component):
                             ),
                             rio.Spacer(),
                             rio.Button(
-                                "+ Add Cycle",
+                                "Add Cycle",
                                 icon="material/add",
                                 shape="rounded",
                                 style="minor",
@@ -557,7 +560,7 @@ class ManageCyclesView(rio.Component):
                         rio.Text(f"— {stk.company_name}", font_size=0.9, fill=COLOR_TEXT_MUTED, align_y=0.5),
                         rio.Spacer(),
                         rio.Button(
-                            "+ Add Cycle",
+                            "Add Cycle",
                             icon="material/add",
                             shape="rounded",
                             style="minor",

@@ -104,15 +104,15 @@ class StockAutocompleteInput(rio.Component):
                 dropdown_items.append(
                     rio.Button(
                         rio.Row(
-                            rio.Text(sym, font_weight="bold", font_size=0.9 if is_mobile else 0.95, min_width=6.5),
+                            rio.Text(sym, font_weight="bold", font_size=0.9 if is_mobile else 0.95, min_width=5.5),
                             rio.Card(
                                 rio.Text(exch, font_size=0.65, font_weight="bold", fill=rio.Color.from_hex("#60A5FA"), margin_x=0.3, margin_y=0.08),
                                 corner_radius=0.2,
-                                color="hud",
+                                color="neutral",
                             ),
-                            rio.Text(name[:32], font_size=0.78 if is_mobile else 0.85, fill=COLOR_TEXT_MUTED),
+                            rio.Text(name[:28], font_size=0.8 if is_mobile else 0.88),
                             rio.Spacer(),
-                            rio.Icon("material/arrow-forward", fill=COLOR_TEXT_DIM, min_width=1.0, min_height=1.0),
+                            rio.Icon("material/arrow-forward", fill=COLOR_TEXT_MUTED, min_width=1.0, min_height=1.0),
                             spacing=0.35,
                             align_y=0.5,
                             grow_x=True,
@@ -121,7 +121,7 @@ class StockAutocompleteInput(rio.Component):
                         ),
                         shape="rounded",
                         style="minor",
-                        color="neutral",
+                        color="primary",
                         grow_x=True,
                         min_height=2.2,
                         on_press=lambda s=sym, n=name: self._select_stock(s, n),
@@ -153,7 +153,7 @@ class StockAutocompleteInput(rio.Component):
                 rio.Card(
                     rio.Column(
                         *dropdown_items,
-                        spacing=0.2,
+                        spacing=0.15,
                         margin=0.3,
                         grow_x=True,
                     ),
@@ -162,7 +162,7 @@ class StockAutocompleteInput(rio.Component):
                     grow_x=True,
                 ),
                 spacing=0.2,
-                grow_x=True,
+                grow_x=self.grow_x,
             )
 
         return input_widget
