@@ -46,6 +46,11 @@ class StockDetailView(rio.Component):
     def _set_timeframe(self, tf: str) -> None:
         self.selected_timeframe = tf
 
+    def _create_timeframe_handler(self, tf: str) -> Callable[[], None]:
+        def handler() -> None:
+            self.selected_timeframe = tf
+        return handler
+
     def _toggle_price(self) -> None:
         self.show_price = not self.show_price
 
@@ -402,7 +407,7 @@ class StockDetailView(rio.Component):
                     style="major" if is_active_tf else "plain-text",
                     color="primary" if is_active_tf else "neutral",
                     min_height=1.5,
-                    on_press=lambda t=tf: self._set_timeframe(t),
+                    on_press=self._create_timeframe_handler(tf),
                 )
             )
 

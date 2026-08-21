@@ -215,11 +215,29 @@ class CycleService:
         # Fetch chart history: Check SQLite cache first for instant load
         end_date = date.today()
         start_date = end_date - timedelta(days=lookback_days)
-        ohlc = self.repo.get_cached_ohlc(stock.symbol, start_date, end_date)
-        if not ohlc or len(ohlc) < min(20, lookback_days // 3):
-            ohlc = list(self.provider.get_historical_ohlc(stock, start_date, end_date))
-            if ohlc:
-                self.repo.save_cached_ohlc(stock.symbol, ohlc)
+        ohlc = list(self.repo.get_cached_ohlc(stock.symbol, start_date, end_date))
+
+        needs_provider_fetch = False
+        if not ohlc:
+            needs_provider_fetch = True
+        else:
+            earliest_cached = ohlc[0].date
+            # If requested start date is significantly earlier than earliest cached bar:
+            if earliest_cached > start_date + timedelta(days=15):
+                needs_provider_fetch = True
+            else:
+                expected_min_bars = max(5, int(lookback_days * 0.40))
+                if len(ohlc) < expected_min_bars:
+                    needs_provider_fetch = True
+
+        if needs_provider_fetch:
+            new_bars = list(self.provider.get_historical_ohlc(stock, start_date, end_date))
+            if new_bars:
+                self.repo.save_cached_ohlc(stock.symbol, new_bars)
+                ohlc = list(self.repo.get_cached_ohlc(stock.symbol, start_date, end_date)) or new_bars
+
+        # Filter strictly to the requested timeframe
+        ohlc = [b for b in ohlc if start_date <= b.date <= end_date]
 
         current_price, price_type, market_status = self.provider.get_current_price(stock)
 
