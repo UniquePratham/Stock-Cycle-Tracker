@@ -7,6 +7,8 @@ from typing import Optional
 
 import rio
 
+from stock_cycle_tracker.domain.user import User
+from stock_cycle_tracker.ui.components.auth_modal import AuthModal
 from stock_cycle_tracker.ui.state import ServiceContainer
 from stock_cycle_tracker.ui.theme import (
     COLOR_BG_DARK,
@@ -29,12 +31,14 @@ FAVICON_PATH = ASSETS_DIR / "favicon.png"
 
 
 class RootComponent(rio.Component):
-    """Main application frame with responsive navigation bar, light/dark theme toggle, and mobile drawer."""
+    """Main application frame with responsive navigation bar, user authentication, avatar profiles, and local storage disclaimers."""
 
     active_page: str = "dashboard"
     selected_stock: Optional[str] = None
     is_mobile_menu_open: bool = False
     is_dark_mode: bool = True
+    current_user: Optional[User] = None
+    is_auth_modal_open: bool = False
 
     def navigate(self, page_name: str, stock_symbol: Optional[str] = None) -> None:
         self.active_page = page_name
@@ -47,6 +51,20 @@ class RootComponent(rio.Component):
     def _toggle_theme(self) -> None:
         self.is_dark_mode = not self.is_dark_mode
         self.session.theme = create_dark_theme() if self.is_dark_mode else create_light_theme()
+
+    def _open_auth_modal(self) -> None:
+        self.is_auth_modal_open = True
+        self.is_mobile_menu_open = False
+
+    def _close_auth_modal(self) -> None:
+        self.is_auth_modal_open = False
+
+    def _on_auth_success(self, user: User) -> None:
+        self.current_user = user
+        self.is_auth_modal_open = False
+
+    def _sign_out(self) -> None:
+        self.current_user = None
 
     def _build_nav_button(self, label: str, icon: str, page_name: str, is_mobile: bool = False) -> rio.Component:
         is_active = self.active_page == page_name
@@ -81,6 +99,48 @@ class RootComponent(rio.Component):
                 min_height=1.6 if is_mobile else 2.0,
             )
 
+        # User Profile / Auth Widget in Navbar
+        user_widget: rio.Component
+        if self.current_user:
+            av = self.current_user.avatar
+            user_widget = rio.Card(
+                rio.Row(
+                    rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.3, min_height=1.3),
+                    rio.Column(
+                        rio.Text(self.current_user.display_name, font_weight="bold", font_size=0.82),
+                        rio.Text(f"{av.name} • Local DB", font_size=0.65, fill=rio.Color.from_hex("#10B981")),
+                        spacing=0.01,
+                    ),
+                    rio.Button(
+                        "",
+                        icon="material/logout",
+                        shape="rounded",
+                        style="plain-text",
+                        color="danger",
+                        min_height=1.6,
+                        min_width=1.6,
+                        on_press=self._sign_out,
+                    ),
+                    spacing=0.3,
+                    align_y=0.5,
+                    margin_x=0.4,
+                    margin_y=0.15,
+                ),
+                corner_radius=0.3,
+                color="hud",
+                grow_x=False,
+            )
+        else:
+            user_widget = rio.Button(
+                "Sign In / Sign Up",
+                icon="material/account-circle",
+                shape="rounded",
+                style="major",
+                color="primary",
+                min_height=2.0,
+                on_press=self._open_auth_modal,
+            )
+
         # Responsive Navbar Header
         header_content: rio.Component
         if is_mobile:
@@ -106,12 +166,13 @@ class RootComponent(rio.Component):
                     grow_x=False,
                 ),
                 rio.Spacer(),
+                user_widget,
                 rio.Button(
                     "Dark" if self.is_dark_mode else "Light",
                     icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
                     shape="rounded",
-                    style="major",
-                    color="primary",
+                    style="minor",
+                    color="neutral",
                     min_height=2.0,
                     on_press=self._toggle_theme,
                 ),
@@ -125,7 +186,7 @@ class RootComponent(rio.Component):
                     min_width=2.4,
                     on_press=self._toggle_mobile_menu,
                 ),
-                spacing=0.3,
+                spacing=0.25,
                 align_y=0.5,
                 margin_x=0.4,
                 margin_y=0.3,
@@ -186,19 +247,20 @@ class RootComponent(rio.Component):
                     align_y=0.5,
                 ),
                 rio.Spacer(),
+                user_widget,
                 rio.Button(
                     "Dark Mode" if self.is_dark_mode else "Light Mode",
                     icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
                     shape="rounded",
-                    style="major",
-                    color="primary",
-                    min_height=2.2,
+                    style="minor",
+                    color="neutral",
+                    min_height=2.0,
                     on_press=self._toggle_theme,
                 ),
-                spacing=0.6,
+                spacing=0.5,
                 align_y=0.5,
-                margin_x=1.2,
-                margin_y=0.45,
+                margin_x=1.0,
+                margin_y=0.4,
                 grow_x=True,
             )
 
@@ -206,17 +268,51 @@ class RootComponent(rio.Component):
             header_content,
             corner_radius=0.5,
             color="neutral",
-            margin_x=0.4 if is_mobile else 1.2,
-            margin_top=0.3 if is_mobile else 0.6,
-            margin_bottom=0.3 if is_mobile else 0.4,
+            margin_x=0.4 if is_mobile else 0.8,
+            margin_top=0.3 if is_mobile else 0.5,
+            margin_bottom=0.2 if is_mobile else 0.3,
             grow_x=True,
             grow_y=False,
             align_y=0.0,
         )
 
+        # Legal & Local Computer Storage Global Disclaimer
+        disclaimer_banner = rio.Card(
+            rio.Row(
+                rio.Icon("material/security", fill=rio.Color.from_hex("#10B981"), min_width=1.0, min_height=1.0),
+                rio.Text(
+                    "Data Privacy Notice: All account details, stocks, and research cycles are stored on your local computer database (SQLite). Calculations are for research & cycle tracking purposes.",
+                    font_size=0.68,
+                    fill=COLOR_TEXT_MUTED,
+                    grow_x=True,
+                ),
+                spacing=0.3,
+                margin_x=0.6,
+                margin_y=0.15,
+                align_y=0.5,
+                grow_x=True,
+            ),
+            corner_radius=0.25,
+            color="hud",
+            margin_x=0.4 if is_mobile else 0.8,
+            margin_bottom=0.2,
+            grow_x=True,
+        )
+
         # Dynamic View Selection
         view_content: rio.Component
-        if self.active_page == "stock_detail" and self.selected_stock:
+        if self.is_auth_modal_open:
+            view_content = rio.Column(
+                AuthModal(
+                    on_auth_success=self._on_auth_success,
+                    on_close=self._close_auth_modal,
+                ),
+                align_x=0.5,
+                align_y=0.5,
+                margin_y=1.0,
+                grow_x=True,
+            )
+        elif self.active_page == "stock_detail" and self.selected_stock:
             view_content = StockDetailView(
                 stock_symbol=self.selected_stock,
                 on_navigate=self.navigate,
@@ -232,8 +328,9 @@ class RootComponent(rio.Component):
 
         return rio.Column(
             nav_header,
+            disclaimer_banner,
             view_content,
-            spacing=0.2,
+            spacing=0.15,
             grow_x=True,
             align_y=0.0,
         )

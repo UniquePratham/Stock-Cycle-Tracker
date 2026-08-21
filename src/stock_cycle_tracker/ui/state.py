@@ -11,6 +11,7 @@ from stock_cycle_tracker.domain.models import MarketSessionStatus
 from stock_cycle_tracker.providers.cached_provider import CachedMarketDataProvider
 from stock_cycle_tracker.providers.composite import CompositeMarketDataProvider
 from stock_cycle_tracker.services.alert_service import AlertService
+from stock_cycle_tracker.services.auth_service import AuthService
 from stock_cycle_tracker.services.cycle_service import CycleService
 from stock_cycle_tracker.services.excel_service import ExcelService
 from stock_cycle_tracker.services.stock_search_service import StockSearchService
@@ -26,6 +27,7 @@ class ServiceContainer:
     def __init__(self, db_path: Optional[str] = None) -> None:
         self.db_manager = DatabaseManager(db_path or "stock_cycle_tracker.db")
         self.repository = StockCycleRepository(self.db_manager)
+        self.auth_service = AuthService(self.repository)
         self.provider = CachedMarketDataProvider(CompositeMarketDataProvider())
         self.engine = CycleEngine()
         self.cycle_service = CycleService(self.repository, self.provider, self.engine)

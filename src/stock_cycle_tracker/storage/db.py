@@ -11,9 +11,22 @@ class DatabaseManager:
     """Manages SQLite database connections and schema migrations."""
 
     SCHEMA_SQL = """
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        full_name TEXT DEFAULT '',
+        avatar_id TEXT DEFAULT 'bull_trader',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS stocks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        symbol TEXT UNIQUE NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        symbol TEXT NOT NULL,
         company_name TEXT DEFAULT '',
         user_display_name TEXT DEFAULT '',
         nse_symbol TEXT,
@@ -25,12 +38,12 @@ class DatabaseManager:
 
     CREATE TABLE IF NOT EXISTS cycles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         stock_id INTEGER NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
         cycle_number INTEGER NOT NULL,
         reference_date DATE NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(stock_id, reference_date)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS market_data_cache (
@@ -49,6 +62,7 @@ class DatabaseManager:
 
     CREATE TABLE IF NOT EXISTS alerts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         stock_symbol TEXT NOT NULL,
         cycle_number INTEGER DEFAULT 1,
         condition_type TEXT NOT NULL,
@@ -77,22 +91,33 @@ class DatabaseManager:
 
     CREATE INDEX IF NOT EXISTS idx_cycles_stock_id ON cycles(stock_id);
     CREATE INDEX IF NOT EXISTS idx_market_data ON market_data_cache(stock_symbol, trading_date);
+    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     """
 
     def __init__(self, db_path: Optional[str | Path] = None) -> None:
+        self._memory_conn: Optional[sqlite3.Connection] = None
         if db_path is None:
             self.db_path = Path("stock_cycle_tracker.db")
+        elif isinstance(db_path, str) and db_path == ":memory:":
+            self.db_path = ":memory:"
         elif isinstance(db_path, str):
             self.db_path = Path(db_path)
         else:
             self.db_path = db_path
 
         if str(self.db_path) != ":memory:":
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(self.db_path, Path):
+                self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            self._memory_conn = sqlite3.connect(":memory:", check_same_thread=False)
+            self._memory_conn.row_factory = sqlite3.Row
+            self._memory_conn.execute("PRAGMA foreign_keys = ON")
 
         self._init_schema()
 
     def get_connection(self) -> sqlite3.Connection:
+        if self._memory_conn is not None:
+            return self._memory_conn
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
@@ -101,4 +126,17 @@ class DatabaseManager:
     def _init_schema(self) -> None:
         with self.get_connection() as conn:
             conn.executescript(self.SCHEMA_SQL)
+            # Safe schema migrations for existing databases
+            try:
+                conn.execute("ALTER TABLE stocks ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute("ALTER TABLE cycles ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute("ALTER TABLE alerts ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+            except sqlite3.OperationalError:
+                pass
             conn.commit()

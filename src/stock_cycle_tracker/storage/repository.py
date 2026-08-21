@@ -12,6 +12,7 @@ from stock_cycle_tracker.domain.models import (
     NormalizedOHLC,
     Stock,
 )
+from stock_cycle_tracker.domain.user import User
 from stock_cycle_tracker.storage.db import DatabaseManager
 
 
@@ -21,13 +22,111 @@ class StockCycleRepository:
     def __init__(self, db_manager: DatabaseManager) -> None:
         self.db = db_manager
 
+    # ------------------ User Account CRUD ------------------
+
+    def create_user(self, user: User) -> User:
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO users (username, email, password_hash, salt, full_name, avatar_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user.username.strip().lower(),
+                    user.email.strip().lower(),
+                    user.password_hash,
+                    user.salt,
+                    user.full_name.strip(),
+                    user.avatar_id,
+                ),
+            )
+            conn.commit()
+            user.id = cur.lastrowid
+            return user
+
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return User(
+                id=row["id"],
+                username=row["username"],
+                email=row["email"],
+                password_hash=row["password_hash"],
+                salt=row["salt"],
+                full_name=row["full_name"],
+                avatar_id=row["avatar_id"],
+                created_at=datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"],
+            )
+
+    def get_user_by_username(self, username: str) -> Optional[User]:
+        uname = username.strip().lower()
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE username = ?", (uname,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return User(
+                id=row["id"],
+                username=row["username"],
+                email=row["email"],
+                password_hash=row["password_hash"],
+                salt=row["salt"],
+                full_name=row["full_name"],
+                avatar_id=row["avatar_id"],
+                created_at=datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"],
+            )
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        em = email.strip().lower()
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE email = ?", (em,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return User(
+                id=row["id"],
+                username=row["username"],
+                email=row["email"],
+                password_hash=row["password_hash"],
+                salt=row["salt"],
+                full_name=row["full_name"],
+                avatar_id=row["avatar_id"],
+                created_at=datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"],
+            )
+
+    def update_user_profile(self, user_id: int, full_name: str, avatar_id: str) -> bool:
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE users SET full_name = ?, avatar_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (full_name.strip(), avatar_id, user_id),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+
     # ------------------ Stock CRUD ------------------
 
-    def create_or_get_stock(self, stock: Stock) -> Stock:
+    def create_or_get_stock(self, stock: Stock, user_id: Optional[int] = None) -> Stock:
         sym = stock.symbol.strip().upper()
         with self.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT id, symbol, company_name, user_display_name, nse_symbol, bse_code, preferred_exchange FROM stocks WHERE symbol = ?", (sym,))
+            if user_id is not None:
+                cur.execute(
+                    "SELECT id, symbol, company_name, user_display_name, nse_symbol, bse_code, preferred_exchange FROM stocks WHERE symbol = ? AND (user_id = ? OR user_id IS NULL)",
+                    (sym, user_id),
+                )
+            else:
+                cur.execute("SELECT id, symbol, company_name, user_display_name, nse_symbol, bse_code, preferred_exchange FROM stocks WHERE symbol = ?", (sym,))
             row = cur.fetchone()
             if row:
                 return Stock(
@@ -42,10 +141,11 @@ class StockCycleRepository:
 
             cur.execute(
                 """
-                INSERT INTO stocks (symbol, company_name, user_display_name, nse_symbol, bse_code, preferred_exchange)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO stocks (user_id, symbol, company_name, user_display_name, nse_symbol, bse_code, preferred_exchange)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    user_id,
                     sym,
                     stock.company_name or sym,
                     stock.user_display_name,
@@ -60,11 +160,14 @@ class StockCycleRepository:
             stock.symbol = sym
             return stock
 
-    def get_stock(self, symbol: str) -> Optional[Stock]:
+    def get_stock(self, symbol: str, user_id: Optional[int] = None) -> Optional[Stock]:
         sym = symbol.strip().upper()
         with self.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM stocks WHERE symbol = ?", (sym,))
+            if user_id is not None:
+                cur.execute("SELECT * FROM stocks WHERE symbol = ? AND (user_id = ? OR user_id IS NULL)", (sym, user_id))
+            else:
+                cur.execute("SELECT * FROM stocks WHERE symbol = ?", (sym,))
             row = cur.fetchone()
             if not row:
                 return None
@@ -78,10 +181,13 @@ class StockCycleRepository:
                 preferred_exchange=ExchangePreference(row["preferred_exchange"] or "NSE"),
             )
 
-    def list_stocks(self) -> List[Stock]:
+    def list_stocks(self, user_id: Optional[int] = None) -> List[Stock]:
         with self.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM stocks ORDER BY symbol ASC")
+            if user_id is not None:
+                cur.execute("SELECT * FROM stocks WHERE user_id = ? OR user_id IS NULL ORDER BY symbol ASC", (user_id,))
+            else:
+                cur.execute("SELECT * FROM stocks ORDER BY symbol ASC")
             return [
                 Stock(
                     id=row["id"],
@@ -104,7 +210,7 @@ class StockCycleRepository:
 
     # ------------------ Cycle CRUD ------------------
 
-    def add_cycle(self, stock_id: int, reference_date: date) -> Cycle:
+    def add_cycle(self, stock_id: int, reference_date: date, user_id: Optional[int] = None) -> Cycle:
         """
         Adds a new cycle for the stock.
         Auto-computes cycle_number (Cycle 1, Cycle 2, ...).
@@ -131,8 +237,8 @@ class StockCycleRepository:
             next_num = cur.fetchone()["next_num"]
 
             cur.execute(
-                "INSERT INTO cycles (stock_id, cycle_number, reference_date) VALUES (?, ?, ?)",
-                (stock_id, next_num, reference_date.isoformat()),
+                "INSERT INTO cycles (user_id, stock_id, cycle_number, reference_date) VALUES (?, ?, ?, ?)",
+                (user_id, stock_id, next_num, reference_date.isoformat()),
             )
             conn.commit()
             new_id = cur.lastrowid
@@ -160,18 +266,31 @@ class StockCycleRepository:
                 for row in cur.fetchall()
             ]
 
-    def list_all_cycles(self) -> List[Tuple[Stock, Cycle]]:
+    def list_all_cycles(self, user_id: Optional[int] = None) -> List[Tuple[Stock, Cycle]]:
         with self.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT s.id as s_id, s.symbol, s.company_name, s.user_display_name, s.nse_symbol, s.bse_code, s.preferred_exchange,
-                       c.id as c_id, c.stock_id, c.cycle_number, c.reference_date
-                FROM cycles c
-                JOIN stocks s ON c.stock_id = s.id
-                ORDER BY s.symbol ASC, c.cycle_number ASC
-                """
-            )
+            if user_id is not None:
+                cur.execute(
+                    """
+                    SELECT s.id as s_id, s.symbol, s.company_name, s.user_display_name, s.nse_symbol, s.bse_code, s.preferred_exchange,
+                           c.id as c_id, c.stock_id, c.cycle_number, c.reference_date
+                    FROM cycles c
+                    JOIN stocks s ON c.stock_id = s.id
+                    WHERE (s.user_id = ? OR s.user_id IS NULL)
+                    ORDER BY s.symbol ASC, c.cycle_number ASC
+                    """,
+                    (user_id,),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT s.id as s_id, s.symbol, s.company_name, s.user_display_name, s.nse_symbol, s.bse_code, s.preferred_exchange,
+                           c.id as c_id, c.stock_id, c.cycle_number, c.reference_date
+                    FROM cycles c
+                    JOIN stocks s ON c.stock_id = s.id
+                    ORDER BY s.symbol ASC, c.cycle_number ASC
+                    """
+                )
             results = []
             for row in cur.fetchall():
                 stock = Stock(

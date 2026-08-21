@@ -428,7 +428,7 @@ class StockDetailView(rio.Component):
             rio.Button(
                 "Price",
                 shape="rounded",
-                style="minor" if self.show_price else "plain-text",
+                style="major" if self.show_price else "plain-text",
                 color="primary" if self.show_price else "neutral",
                 min_height=1.5,
                 on_press=self._toggle_price,
@@ -436,7 +436,7 @@ class StockDetailView(rio.Component):
             rio.Button(
                 "50 DMA",
                 shape="rounded",
-                style="minor" if self.show_50_dma else "plain-text",
+                style="major" if self.show_50_dma else "plain-text",
                 color="warning" if self.show_50_dma else "neutral",
                 min_height=1.5,
                 on_press=self._toggle_50_dma,
@@ -444,7 +444,7 @@ class StockDetailView(rio.Component):
             rio.Button(
                 "200 DMA",
                 shape="rounded",
-                style="minor" if self.show_200_dma else "plain-text",
+                style="major" if self.show_200_dma else "plain-text",
                 color="secondary" if self.show_200_dma else "neutral",
                 min_height=1.5,
                 on_press=self._toggle_200_dma,
@@ -452,7 +452,7 @@ class StockDetailView(rio.Component):
             rio.Button(
                 "Volume",
                 shape="rounded",
-                style="minor" if self.show_volume else "plain-text",
+                style="major" if self.show_volume else "plain-text",
                 color="primary" if self.show_volume else "neutral",
                 min_height=1.5,
                 on_press=self._toggle_volume,
@@ -460,22 +460,30 @@ class StockDetailView(rio.Component):
             rio.Button(
                 "Cycle Anchors",
                 shape="rounded",
-                style="minor" if self.show_cycle_anchors else "plain-text",
+                style="major" if self.show_cycle_anchors else "plain-text",
                 color="success" if self.show_cycle_anchors else "neutral",
                 min_height=1.5,
                 on_press=self._toggle_cycle_anchors,
             ),
         ]
 
+        indicators_bar = rio.Card(
+            rio.Row(
+                *indicator_toggles,
+                spacing=0.1,
+                align_y=0.5,
+                margin_x=0.15,
+                margin_y=0.08,
+            ),
+            corner_radius=0.3,
+            color="hud",
+            grow_x=False,
+        )
+
         if is_mobile:
             chart_toolbar = rio.Column(
                 timeframe_bar,
-                rio.Row(
-                    *indicator_toggles,
-                    spacing=0.15,
-                    align_y=0.5,
-                    grow_x=True,
-                ),
+                indicators_bar,
                 spacing=0.25,
                 margin_x=0.3,
                 margin_y=0.2,
@@ -484,11 +492,7 @@ class StockDetailView(rio.Component):
         else:
             chart_toolbar = rio.FlowContainer(
                 timeframe_bar,
-                rio.Row(
-                    *indicator_toggles,
-                    spacing=0.2,
-                    align_y=0.5,
-                ),
+                indicators_bar,
                 spacing=0.4,
                 row_spacing=0.3,
                 column_spacing=0.4,
