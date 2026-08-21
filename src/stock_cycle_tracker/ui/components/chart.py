@@ -241,7 +241,7 @@ def create_cycle_plotly_figure(
         template=template_name,
         paper_bgcolor=paper_bg,
         plot_bgcolor=plot_bg,
-        margin=dict(l=40 if is_mobile else 65, r=15 if is_mobile else 45, t=50 if is_mobile else 60, b=40 if is_mobile else 50),
+        margin=dict(l=30 if is_mobile else 45, r=10 if is_mobile else 25, t=40 if is_mobile else 45, b=30 if is_mobile else 35),
         height=chart_height,
         autosize=True,
         dragmode=False,

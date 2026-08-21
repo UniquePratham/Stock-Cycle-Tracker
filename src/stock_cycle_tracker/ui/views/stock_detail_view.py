@@ -468,38 +468,26 @@ class StockDetailView(rio.Component):
             ),
         ]
 
-        if is_mobile:
-            chart_toolbar = rio.Column(
-                timeframe_bar,
-                rio.FlowContainer(
-                    *indicator_toggles,
-                    spacing=0.25,
-                    row_spacing=0.2,
-                    align_y=0.5,
-                    grow_x=True,
-                ),
-                spacing=0.3,
-                margin_x=0.3,
-                margin_top=0.4,
-                margin_bottom=0.2,
-                grow_x=True,
-            )
-        else:
-            chart_toolbar = rio.Row(
-                timeframe_bar,
-                rio.Spacer(),
-                rio.Row(
-                    *indicator_toggles,
-                    spacing=0.25,
-                    align_y=0.5,
-                ),
-                spacing=0.4,
+        chart_toolbar = rio.FlowContainer(
+            timeframe_bar,
+            rio.FlowContainer(
+                *indicator_toggles,
+                spacing=0.2,
+                row_spacing=0.2,
+                column_spacing=0.2,
                 align_y=0.5,
-                margin_x=0.6,
-                margin_top=0.4,
-                margin_bottom=0.2,
-                grow_x=True,
-            )
+                grow_x=False,
+            ),
+            spacing=0.4,
+            row_spacing=0.3,
+            column_spacing=0.4,
+            justify="justify",
+            align_y=0.5,
+            margin_x=0.4 if is_mobile else 0.6,
+            margin_top=0.4,
+            margin_bottom=0.2,
+            grow_x=True,
+        )
 
         # Plotly Chart Card
         chart_card = rio.Card(
@@ -581,55 +569,54 @@ class StockDetailView(rio.Component):
                 row_content = rio.Row(
                     cycle_chip,
                     rio.Column(
-                        rio.Text("Original Research Date", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        rio.Text(a.original_reference_date.strftime("%d-%b-%Y"), font_size=0.92, font_weight="bold"),
-                        min_width=10.0,
+                        rio.Text("Research Date", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(a.original_reference_date.strftime("%d-%b-%Y"), font_size=0.88, font_weight="bold"),
                         spacing=0.02,
+                        grow_x=True,
                     ),
                     rio.Column(
-                        rio.Text("Actual Trading Date", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        rio.Text(a.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.92),
-                        min_width=10.0,
+                        rio.Text("Trading Date", font_size=0.7, fill=COLOR_TEXT_DIM),
+                        rio.Text(a.actual_reference_trading_date.strftime("%d-%b-%Y"), font_size=0.88),
                         spacing=0.02,
+                        grow_x=True,
                     ),
                     rio.Column(
                         rio.Text("Ref High", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        rio.Text(f"₹{a.reference_high:,.2f}", font_size=0.92, font_weight="bold"),
-                        min_width=7.5,
+                        rio.Text(f"₹{a.reference_high:,.2f}", font_size=0.88, font_weight="bold"),
                         spacing=0.02,
+                        grow_x=True,
                     ),
                     rio.Column(
                         rio.Text("Ref Low", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        rio.Text(f"₹{a.reference_low:,.2f}", font_size=0.92, fill=COLOR_TEXT_MUTED),
-                        min_width=7.5,
+                        rio.Text(f"₹{a.reference_low:,.2f}", font_size=0.88, fill=COLOR_TEXT_MUTED),
                         spacing=0.02,
+                        grow_x=True,
                     ),
                     rio.Column(
                         rio.Text("% Change", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        rio.Text(f"{a.percentage_change:+.2f}%", font_size=0.95, font_weight="bold", fill=chg_c),
-                        min_width=6.5,
+                        rio.Text(f"{a.percentage_change:+.2f}%", font_size=0.92, font_weight="bold", fill=chg_c),
                         spacing=0.02,
+                        grow_x=True,
                     ),
                     rio.Card(
-                        rio.Text(a.bucket, font_size=0.78, font_weight="bold", fill=bk_c, margin_x=0.45, margin_y=0.15),
+                        rio.Text(a.bucket, font_size=0.75, font_weight="bold", fill=bk_c, margin_x=0.35, margin_y=0.12),
                         corner_radius=0.25,
                         color="hud",
-                        min_width=9.0,
                     ),
                     rio.Spacer(),
                     rio.Button(
-                        "Inspect Chart",
+                        "Inspect",
                         icon="material/show-chart",
                         shape="rounded",
                         style="major" if is_active_row else "minor",
                         color="primary" if is_active_row else "neutral",
-                        min_height=2.2,
+                        min_height=2.0,
                         on_press=lambda idx=analyses.index(a): self._select_cycle(idx),
                     ),
-                    spacing=0.6,
+                    spacing=0.4,
                     align_y=0.5,
-                    margin_x=0.8,
-                    margin_y=0.35,
+                    margin_x=0.6,
+                    margin_y=0.25,
                     grow_x=True,
                 )
 
