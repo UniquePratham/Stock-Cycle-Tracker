@@ -252,7 +252,7 @@ class StockDetailView(rio.Component):
             header_content,
             corner_radius=0.5,
             color="neutral",
-            margin_x=0.4 if is_mobile else 1.2,
+            margin_x=0.4 if is_mobile else 0.8,
             margin_top=0.2,
             grow_x=True,
         )
@@ -317,7 +317,7 @@ class StockDetailView(rio.Component):
                 ),
                 corner_radius=0.4,
                 color="hud",
-                margin_x=0.4 if is_mobile else 1.2,
+                margin_x=0.4 if is_mobile else 0.8,
                 grow_x=True,
             )
 
@@ -330,46 +330,46 @@ class StockDetailView(rio.Component):
             stats_cards = [
                 rio.Card(
                     rio.Column(
-                        rio.Text(f"Cycle {active_analysis.cycle_number} Ref High / Low", font_size=0.75, fill=COLOR_TEXT_MUTED),
+                        rio.Text(f"Cycle {active_analysis.cycle_number} Ref High / Low", font_size=0.72, fill=COLOR_TEXT_MUTED),
                         rio.Row(
-                            rio.Text(f"H: ₹{active_analysis.reference_high:,.2f}", font_size=1.1 if is_mobile else 1.3, font_weight="bold"),
-                            rio.Text(f"L: ₹{active_analysis.reference_low:,.2f}", font_size=1.1 if is_mobile else 1.3, fill=COLOR_TEXT_MUTED),
-                            spacing=0.4,
+                            rio.Text(f"H: ₹{active_analysis.reference_high:,.2f}", font_size=0.98 if is_mobile else 1.05, font_weight="bold"),
+                            rio.Text(f"L: ₹{active_analysis.reference_low:,.2f}", font_size=0.85 if is_mobile else 0.92, fill=COLOR_TEXT_MUTED),
+                            spacing=0.3,
                             align_y=0.5,
                         ),
-                        rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        spacing=0.04,
-                        margin=0.5 if is_mobile else 0.7,
+                        rio.Text(f"Anchor: {active_analysis.actual_reference_trading_date.strftime('%d-%b-%Y')}", font_size=0.68, fill=COLOR_TEXT_DIM),
+                        spacing=0.03,
+                        margin=0.4 if is_mobile else 0.5,
                     ),
-                    corner_radius=0.4,
+                    corner_radius=0.35,
                     color="neutral",
                     grow_x=True,
                 ),
                 rio.Card(
                     rio.Column(
-                        rio.Text("Percentage Change", font_size=0.75, fill=COLOR_TEXT_MUTED),
-                        rio.Text(f"{active_analysis.percentage_change:+.2f}%", font_size=1.3 if is_mobile else 1.6, font_weight="bold", fill=chg_col),
-                        rio.Text("vs Reference High", font_size=0.7, fill=COLOR_TEXT_DIM),
-                        spacing=0.04,
-                        margin=0.5 if is_mobile else 0.7,
+                        rio.Text("Percentage Change", font_size=0.72, fill=COLOR_TEXT_MUTED),
+                        rio.Text(f"{active_analysis.percentage_change:+.2f}%", font_size=1.1 if is_mobile else 1.25, font_weight="bold", fill=chg_col),
+                        rio.Text("vs Reference High", font_size=0.68, fill=COLOR_TEXT_DIM),
+                        spacing=0.03,
+                        margin=0.4 if is_mobile else 0.5,
                     ),
-                    corner_radius=0.4,
+                    corner_radius=0.35,
                     color="neutral",
                     grow_x=True,
                 ),
                 rio.Card(
                     rio.Column(
-                        rio.Text("Classification Bucket", font_size=0.75, fill=COLOR_TEXT_MUTED),
-                        rio.Text(active_analysis.bucket, font_size=1.1 if is_mobile else 1.3, font_weight="bold", fill=bucket_col),
+                        rio.Text("Classification Bucket", font_size=0.72, fill=COLOR_TEXT_MUTED),
+                        rio.Text(active_analysis.bucket, font_size=0.98 if is_mobile else 1.05, font_weight="bold", fill=bucket_col),
                         rio.Text(
                             f"Window: {active_analysis.cycle_start_date.strftime('%d-%b')} → {active_analysis.cycle_end_date.strftime('%d-%b-%y')}",
-                            font_size=0.7,
+                            font_size=0.68,
                             fill=COLOR_TEXT_DIM,
                         ),
-                        spacing=0.04,
-                        margin=0.5 if is_mobile else 0.7,
+                        spacing=0.03,
+                        margin=0.4 if is_mobile else 0.5,
                     ),
-                    corner_radius=0.4,
+                    corner_radius=0.35,
                     color="neutral",
                     grow_x=True,
                 ),
@@ -379,15 +379,15 @@ class StockDetailView(rio.Component):
         if is_mobile:
             stats_layout = rio.Column(
                 *stats_cards,
-                spacing=0.3,
+                spacing=0.25,
                 margin_x=0.4,
                 grow_x=True,
             )
         else:
             stats_layout = rio.Row(
                 *stats_cards,
-                spacing=0.8,
-                margin_x=1.2,
+                spacing=0.5,
+                margin_x=0.8,
                 grow_x=True,
             )
 
@@ -401,8 +401,7 @@ class StockDetailView(rio.Component):
                     shape="rounded",
                     style="major" if is_active_tf else "plain-text",
                     color="primary" if is_active_tf else "neutral",
-                    min_height=1.8,
-                    min_width=2.2 if is_mobile else 2.8,
+                    min_height=1.5,
                     on_press=lambda t=tf: self._set_timeframe(t),
                 )
             )
@@ -410,12 +409,12 @@ class StockDetailView(rio.Component):
         timeframe_bar = rio.Card(
             rio.Row(
                 *timeframe_buttons,
-                spacing=0.15,
+                spacing=0.1,
                 align_y=0.5,
-                margin_x=0.2,
-                margin_y=0.1,
+                margin_x=0.15,
+                margin_y=0.08,
             ),
-            corner_radius=0.35,
+            corner_radius=0.3,
             color="hud",
             grow_x=False,
         )
@@ -423,47 +422,42 @@ class StockDetailView(rio.Component):
         indicator_toggles = [
             rio.Button(
                 "Price",
-                icon="material/show-chart",
                 shape="rounded",
                 style="minor" if self.show_price else "plain-text",
                 color="primary" if self.show_price else "neutral",
-                min_height=1.8,
+                min_height=1.5,
                 on_press=self._toggle_price,
             ),
             rio.Button(
                 "50 DMA",
-                icon="material/timeline",
                 shape="rounded",
                 style="minor" if self.show_50_dma else "plain-text",
                 color="warning" if self.show_50_dma else "neutral",
-                min_height=1.8,
+                min_height=1.5,
                 on_press=self._toggle_50_dma,
             ),
             rio.Button(
                 "200 DMA",
-                icon="material/trending-up",
                 shape="rounded",
                 style="minor" if self.show_200_dma else "plain-text",
                 color="secondary" if self.show_200_dma else "neutral",
-                min_height=1.8,
+                min_height=1.5,
                 on_press=self._toggle_200_dma,
             ),
             rio.Button(
                 "Volume",
-                icon="material/bar-chart",
                 shape="rounded",
                 style="minor" if self.show_volume else "plain-text",
                 color="primary" if self.show_volume else "neutral",
-                min_height=1.8,
+                min_height=1.5,
                 on_press=self._toggle_volume,
             ),
             rio.Button(
                 "Cycle Anchors",
-                icon="material/anchor",
                 shape="rounded",
                 style="minor" if self.show_cycle_anchors else "plain-text",
                 color="success" if self.show_cycle_anchors else "neutral",
-                min_height=1.8,
+                min_height=1.5,
                 on_press=self._toggle_cycle_anchors,
             ),
         ]
@@ -473,29 +467,31 @@ class StockDetailView(rio.Component):
                 timeframe_bar,
                 rio.Row(
                     *indicator_toggles,
-                    spacing=0.2,
+                    spacing=0.15,
                     align_y=0.5,
                     grow_x=True,
                 ),
-                spacing=0.3,
-                margin_x=0.4,
-                margin_y=0.25,
+                spacing=0.25,
+                margin_x=0.3,
+                margin_y=0.2,
                 grow_x=True,
             )
         else:
-            chart_toolbar = rio.Row(
+            chart_toolbar = rio.FlowContainer(
                 timeframe_bar,
-                rio.Spacer(),
                 rio.Row(
                     *indicator_toggles,
-                    spacing=0.25,
+                    spacing=0.2,
                     align_y=0.5,
                 ),
-                spacing=0.6,
+                spacing=0.4,
+                row_spacing=0.3,
+                column_spacing=0.4,
+                justify="justify",
                 align_y=0.5,
-                margin_x=0.8,
-                margin_top=0.35,
-                margin_bottom=0.15,
+                margin_x=0.5,
+                margin_top=0.25,
+                margin_bottom=0.1,
                 grow_x=True,
             )
 
@@ -505,15 +501,15 @@ class StockDetailView(rio.Component):
                 chart_toolbar,
                 rio.Plot(
                     fig,
-                    min_height=28.0 if not is_mobile else (36.0 if is_portrait else 22.0),
+                    min_height=26.0 if not is_mobile else (34.0 if is_portrait else 20.0),
                     grow_x=True,
                 ),
-                spacing=0.2,
+                spacing=0.15,
                 grow_x=True,
             ),
-            corner_radius=0.5,
+            corner_radius=0.45,
             color="neutral",
-            margin_x=0.4 if is_mobile else 1.2,
+            margin_x=0.4 if is_mobile else 0.8,
             grow_x=True,
         )
 
@@ -522,10 +518,10 @@ class StockDetailView(rio.Component):
         breakdown_rows.append(
             rio.Text(
                 "Configured Research Cycles Breakdown",
-                font_size=1.1 if is_mobile else 1.3,
+                font_size=1.05 if is_mobile else 1.2,
                 font_weight="bold",
-                margin_x=0.4 if is_mobile else 1.2,
-                margin_top=0.4,
+                margin_x=0.4 if is_mobile else 0.8,
+                margin_top=0.3,
             )
         )
 
@@ -635,7 +631,7 @@ class StockDetailView(rio.Component):
                     row_content,
                     corner_radius=0.4,
                     color="hud" if is_active_row else "neutral",
-                    margin_x=0.4 if is_mobile else 1.2,
+                    margin_x=0.4 if is_mobile else 0.8,
                     grow_x=True,
                 )
             )
