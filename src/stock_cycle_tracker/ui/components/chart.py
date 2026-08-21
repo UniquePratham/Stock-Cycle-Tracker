@@ -69,14 +69,14 @@ def create_cycle_plotly_figure(
             go.Bar(
                 x=df["Date"],
                 y=df["Volume"],
-                name="Volume",
+                name="Trading Volume",
                 yaxis="y2",
                 marker_color=vol_color,
-                hovertemplate="<b>Vol:</b> %{y:,.0f}<extra></extra>",
+                hovertemplate="Volume: <b>%{y:,.0f} shares</b><extra>Volume</extra>",
             )
         )
 
-    # 2. Base Price Line with soft area fill
+    # 2. Base Price Line with full OHLC hover metadata and area fill
     if show_price:
         line_col = "#38BDF8" if is_dark_mode else "#0284C7"
         fill_col = "rgba(56, 189, 248, 0.07)" if is_dark_mode else "rgba(2, 132, 199, 0.05)"
@@ -90,7 +90,16 @@ def create_cycle_plotly_figure(
                 line=dict(color=line_col, width=2.0),
                 fill="tozeroy",
                 fillcolor=fill_col,
-                hovertemplate="<b>%{x|%d-%b-%Y}</b><br>Price: ₹%{y:,.2f}<extra></extra>",
+                customdata=df[["Open", "High", "Low", "Close", "Volume"]].values,
+                hovertemplate=(
+                    "<b>Date: %{x|%d-%b-%Y}</b><br>"
+                    "Open: ₹%{customdata[0]:,.2f}<br>"
+                    "High: ₹%{customdata[1]:,.2f}<br>"
+                    "Low: ₹%{customdata[2]:,.2f}<br>"
+                    "Close: <b>₹%{customdata[3]:,.2f}</b><br>"
+                    "Volume: %{customdata[4]:,.0f}"
+                    "<extra>Price</extra>"
+                ),
             )
         )
 
@@ -102,9 +111,9 @@ def create_cycle_plotly_figure(
                 x=df["Date"],
                 y=df["50_DMA"],
                 mode="lines",
-                name="50 DMA",
+                name="50 Day Moving Avg",
                 line=dict(color=dma50_col, width=1.6),
-                hovertemplate="<b>50 DMA:</b> ₹%{y:,.2f}<extra></extra>",
+                hovertemplate="50 DMA: <b>₹%{y:,.2f}</b><extra>50 DMA</extra>",
             )
         )
 
@@ -116,9 +125,9 @@ def create_cycle_plotly_figure(
                 x=df["Date"],
                 y=df["200_DMA"],
                 mode="lines",
-                name="200 DMA",
+                name="200 Day Moving Avg",
                 line=dict(color=dma200_col, width=1.6),
-                hovertemplate="<b>200 DMA:</b> ₹%{y:,.2f}<extra></extra>",
+                hovertemplate="200 DMA: <b>₹%{y:,.2f}</b><extra>200 DMA</extra>",
             )
         )
 
@@ -145,7 +154,7 @@ def create_cycle_plotly_figure(
                 line_dash="dash",
                 line_color=col,
                 line_width=1.6,
-                annotation_text=f"C{c_num} Ref High: ₹{ref_high:,.2f}",
+                annotation_text=f" <b>Cycle {c_num} Ref High: ₹{ref_high:,.2f}</b> ",
                 annotation_position="top right",
                 annotation_font=dict(color=col, size=9 if is_mobile else 11, family="Roboto, Inter, sans-serif"),
                 annotation_bgcolor="#1E293B" if is_dark_mode else "#F1F5F9",
@@ -161,7 +170,7 @@ def create_cycle_plotly_figure(
                     line_dash="dot",
                     line_color=col,
                     line_width=1.2,
-                    annotation_text=f"C{c_num} Ref Low: ₹{ref_low:,.2f}",
+                    annotation_text=f" <b>Cycle {c_num} Ref Low: ₹{ref_low:,.2f}</b> ",
                     annotation_position="bottom right",
                     annotation_font=dict(color=col, size=8 if is_mobile else 10, family="Roboto, Inter, sans-serif"),
                     annotation_bgcolor="#1E293B" if is_dark_mode else "#F1F5F9",
@@ -177,9 +186,9 @@ def create_cycle_plotly_figure(
                 line_dash="dot",
                 line_color=col,
                 line_width=1.4,
-                annotation_text=f"C{c_num} Ref: {ref_trade_date.strftime('%d-%b') if hasattr(ref_trade_date, 'strftime') else str(ref_trade_date)}",
+                annotation_text=f" <b>Cycle {c_num} Ref Date: {ref_trade_date.strftime('%d-%b-%Y') if hasattr(ref_trade_date, 'strftime') else str(ref_trade_date)}</b> ",
                 annotation_position="bottom left",
-                annotation_font=dict(color=col, size=9 if is_mobile else 10, family="Roboto, Inter, sans-serif"),
+                annotation_font=dict(color=col, size=8 if is_mobile else 10, family="Roboto, Inter, sans-serif"),
                 annotation_bgcolor="#1E293B" if is_dark_mode else "#F1F5F9",
                 annotation_bordercolor=col,
                 annotation_borderwidth=1,
@@ -193,10 +202,13 @@ def create_cycle_plotly_figure(
             go.Scatter(
                 x=[last_row["Date"]],
                 y=[last_row["Close"]],
-                mode="markers",
-                name=f"Current ({analysis.price_type.value if analysis else 'PRICE'})",
+                mode="markers+text",
+                name=f"Current: ₹{last_row['Close']:,.2f}",
+                text=[f" ₹{last_row['Close']:,.2f}"],
+                textposition="top right",
+                textfont=dict(size=10 if is_mobile else 11, color="#F43F5E", family="Roboto, Inter, sans-serif"),
                 marker=dict(size=8 if is_mobile else 10, color="#F43F5E", line=dict(width=2, color="#FFFFFF")),
-                hovertemplate="<b>Latest: %{x|%d-%b-%Y}</b><br>Price: ₹%{y:,.2f}<extra></extra>",
+                hovertemplate="Latest Price: <b>₹%{y:,.2f}</b> (%{x|%d-%b-%Y})<extra>Current</extra>",
             )
         )
 
@@ -209,7 +221,7 @@ def create_cycle_plotly_figure(
     title_text = (
         f"<b>{symbol}</b> ({timeframe_label})"
         if is_mobile
-        else f"<b>{symbol}</b> — {timeframe_label} Price Action, 50/200 DMA & Cycle Anchors"
+        else f"<b>{symbol}</b> — {timeframe_label} Stock Price Action, 50 & 200 DMA, and Volume Analysis"
     )
 
     # Max volume for yaxis2 range
@@ -261,6 +273,7 @@ def create_cycle_plotly_figure(
             bgcolor=legend_bg,
         ),
         xaxis=dict(
+            title=dict(text="Trading Date", font=dict(size=10 if is_mobile else 11, color=axis_font_col)),
             showgrid=True,
             gridcolor=grid_col,
             gridwidth=1.2,
@@ -271,6 +284,7 @@ def create_cycle_plotly_figure(
             tickfont=dict(size=9 if is_mobile else 11),
         ),
         yaxis=dict(
+            title=dict(text="Price (₹ INR)", font=dict(size=10 if is_mobile else 11, color=axis_font_col)),
             showgrid=True,
             gridcolor=grid_col,
             gridwidth=1.2,
@@ -291,7 +305,7 @@ def create_cycle_plotly_figure(
             range=[0, max_vol * 4.5 if max_vol > 0 else 1000],
             fixedrange=True,
         ),
-        hovermode="x unified" if not is_mobile else False,
+        hovermode="x" if not is_mobile else False,
     )
 
     return fig
