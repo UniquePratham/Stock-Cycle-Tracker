@@ -23,6 +23,7 @@ from stock_cycle_tracker.ui.theme import (
 from stock_cycle_tracker.ui.views.alerts_view import AlertsView
 from stock_cycle_tracker.ui.views.dashboard_view import DashboardView
 from stock_cycle_tracker.ui.views.excel_view import ExcelView
+from stock_cycle_tracker.ui.views.home_view import HomeView
 from stock_cycle_tracker.ui.views.manage_cycles_view import ManageCyclesView
 from stock_cycle_tracker.ui.views.stock_detail_view import StockDetailView
 
@@ -33,14 +34,18 @@ FAVICON_PATH = ASSETS_DIR / "favicon.png"
 class RootComponent(rio.Component):
     """Main application frame with responsive navigation bar, user authentication, avatar profiles, and local storage disclaimers."""
 
-    active_page: str = "dashboard"
+    active_page: str = "home"
     selected_stock: Optional[str] = None
     is_mobile_menu_open: bool = False
     is_dark_mode: bool = True
     current_user: Optional[User] = None
     is_auth_modal_open: bool = False
+    auth_modal_initial_tab: str = "signin"
 
     def navigate(self, page_name: str, stock_symbol: Optional[str] = None) -> None:
+        if self.current_user is None and page_name not in ("home",):
+            self._open_signin()
+            return
         self.active_page = page_name
         self.selected_stock = stock_symbol
         self.is_mobile_menu_open = False
@@ -52,9 +57,16 @@ class RootComponent(rio.Component):
         self.is_dark_mode = not self.is_dark_mode
         self.session.theme = create_dark_theme() if self.is_dark_mode else create_light_theme()
 
-    def _open_auth_modal(self) -> None:
+    def _open_auth_modal(self, initial_tab: str = "signin") -> None:
+        self.auth_modal_initial_tab = initial_tab
         self.is_auth_modal_open = True
         self.is_mobile_menu_open = False
+
+    def _open_signin(self) -> None:
+        self._open_auth_modal("signin")
+
+    def _open_signup(self) -> None:
+        self._open_auth_modal("signup")
 
     def _close_auth_modal(self) -> None:
         self.is_auth_modal_open = False
@@ -62,9 +74,26 @@ class RootComponent(rio.Component):
     def _on_auth_success(self, user: User) -> None:
         self.current_user = user
         self.is_auth_modal_open = False
+        self.active_page = "dashboard"
+
+    def _handle_quick_demo(self) -> None:
+        container = ServiceContainer.get()
+        user, _ = container.auth_service.signin("investor", "investor123")
+        if not user:
+            user, _ = container.auth_service.signup(
+                username="investor",
+                email="investor@local.dev",
+                password="investor123",
+                full_name="Chief Market Analyst",
+                avatar_id="cycle_master",
+            )
+        if user:
+            self._on_auth_success(user)
 
     def _sign_out(self) -> None:
         self.current_user = None
+        self.active_page = "home"
+        self.selected_stock = None
 
     def _build_nav_button(self, label: str, icon: str, page_name: str, is_mobile: bool = False) -> rio.Component:
         is_active = self.active_page == page_name
@@ -131,14 +160,27 @@ class RootComponent(rio.Component):
                 grow_x=False,
             )
         else:
-            user_widget = rio.Button(
-                "Sign In / Sign Up",
-                icon="material/account-circle",
-                shape="rounded",
-                style="major",
-                color="primary",
-                min_height=2.0,
-                on_press=self._open_auth_modal,
+            user_widget = rio.Row(
+                rio.Button(
+                    "Sign In",
+                    icon="material/login",
+                    shape="rounded",
+                    style="minor",
+                    color="neutral",
+                    min_height=2.0,
+                    on_press=self._open_signin,
+                ),
+                rio.Button(
+                    "Create Account",
+                    icon="material/person-add",
+                    shape="rounded",
+                    style="major",
+                    color="primary",
+                    min_height=2.0,
+                    on_press=self._open_signup,
+                ),
+                spacing=0.2,
+                align_y=0.5,
             )
 
         # Responsive Navbar Header
@@ -299,11 +341,12 @@ class RootComponent(rio.Component):
             grow_x=True,
         )
 
-        # Dynamic View Selection
+        # Dynamic View Selection with Auth Gate
         view_content: rio.Component
         if self.is_auth_modal_open:
             view_content = rio.Column(
                 AuthModal(
+                    active_tab=self.auth_modal_initial_tab,
                     on_auth_success=self._on_auth_success,
                     on_close=self._close_auth_modal,
                 ),
@@ -311,6 +354,12 @@ class RootComponent(rio.Component):
                 align_y=0.5,
                 margin_y=1.0,
                 grow_x=True,
+            )
+        elif self.current_user is None or self.active_page == "home":
+            view_content = HomeView(
+                on_open_signin=self._open_signin,
+                on_open_signup=self._open_signup,
+                on_quick_demo=self._handle_quick_demo,
             )
         elif self.active_page == "stock_detail" and self.selected_stock:
             view_content = StockDetailView(
@@ -325,6 +374,15 @@ class RootComponent(rio.Component):
             view_content = AlertsView(on_navigate=self.navigate)
         else:
             view_content = DashboardView(on_navigate=self.navigate)
+
+        return rio.Column(
+            nav_header,
+            disclaimer_banner,
+            view_content,
+            spacing=0.15,
+            grow_x=True,
+            align_y=0.0,
+        )
 
         return rio.Column(
             nav_header,
