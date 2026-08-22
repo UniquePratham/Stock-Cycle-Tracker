@@ -257,59 +257,112 @@ class RootComponent(rio.Component):
                 header_content = mobile_top_bar
         else:
             # Desktop Header
-            nav_links = (
-                rio.Row(
-                    self._build_nav_button("Dashboard", "material/dashboard", "dashboard"),
-                    self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
-                    self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
-                    self._build_nav_button("Alerts", "material/notifications", "alerts"),
-                    spacing=0.3,
-                    align_y=0.5,
-                )
-                if self.current_user
-                else rio.Spacer()
-            )
-
-            header_content = rio.Row(
-                rio.Row(
-                    brand_icon_component,
-                    rio.Column(
-                        rio.Text(
-                            "STOCK CYCLE TRACKER",
-                            font_weight="bold",
-                            font_size=1.15,
+            if self.current_user:
+                header_content = rio.Row(
+                    rio.Row(
+                        brand_icon_component,
+                        rio.Column(
+                            rio.Text(
+                                "STOCK CYCLE TRACKER",
+                                font_weight="bold",
+                                font_size=1.1,
+                            ),
+                            rio.Text(
+                                "Institutional Cycle Intelligence",
+                                font_size=0.72,
+                                fill=COLOR_TEXT_MUTED,
+                            ),
+                            spacing=0.02,
                         ),
-                        rio.Text(
-                            "Institutional Cycle Intelligence",
-                            font_size=0.75,
-                            fill=COLOR_TEXT_MUTED,
-                        ),
-                        spacing=0.03,
+                        spacing=0.4,
+                        align_y=0.5,
+                        grow_x=False,
                     ),
-                    spacing=0.5,
+                    rio.Spacer(),
+                    rio.Row(
+                        self._build_nav_button("Dashboard", "material/dashboard", "dashboard"),
+                        self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
+                        self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
+                        self._build_nav_button("Alerts", "material/notifications", "alerts"),
+                        spacing=0.25,
+                        align_y=0.5,
+                    ),
+                    rio.Spacer(),
+                    user_widget,
+                    rio.Button(
+                        "Dark" if self.is_dark_mode else "Light",
+                        icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                        shape="rounded",
+                        style="minor",
+                        color="neutral",
+                        min_height=2.0,
+                        on_press=self._toggle_theme,
+                    ),
+                    spacing=0.35,
                     align_y=0.5,
-                    align_x=0.0,
-                    grow_x=False,
-                ),
-                rio.Spacer(),
-                nav_links,
-                rio.Spacer(),
-                user_widget,
-                rio.Button(
-                    "Dark Mode" if self.is_dark_mode else "Light Mode",
-                    icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                    shape="rounded",
-                    style="minor",
-                    color="neutral",
-                    min_height=2.0,
-                    on_press=self._toggle_theme,
-                ),
-                spacing=0.5,
-                align_y=0.5,
-                margin_x=0.8,
-                margin_y=0.35,
-                grow_x=True,
-            )
+                    margin_x=0.6,
+                    margin_y=0.3,
+                    grow_x=True,
+                )
+            else:
+                header_content = rio.Row(
+                    rio.Row(
+                        brand_icon_component,
+                        rio.Column(
+                            rio.Text(
+                                "STOCK CYCLE TRACKER",
+                                font_weight="bold",
+                                font_size=1.1,
+                            ),
+                            rio.Text(
+                                "Institutional Cycle Intelligence",
+                                font_size=0.72,
+                                fill=COLOR_TEXT_MUTED,
+                            ),
+                            spacing=0.02,
+                        ),
+                        spacing=0.4,
+                        align_y=0.5,
+                        grow_x=False,
+                    ),
+                    rio.Spacer(),
+                    rio.Row(
+                        rio.Button(
+                            "Sign In",
+                            icon="material/login",
+                            shape="rounded",
+                            style="minor",
+                            color="neutral",
+                            min_height=2.0,
+                            on_press=self._open_signin,
+                        ),
+                        rio.Button(
+                            "Create Account",
+                            icon="material/person-add",
+                            shape="rounded",
+                            style="major",
+                            color="primary",
+                            min_height=2.0,
+                            on_press=self._open_signup,
+                        ),
+                        rio.Button(
+                            "Dark" if self.is_dark_mode else "Light",
+                            icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                            shape="rounded",
+                            style="minor",
+                            color="neutral",
+                            min_height=2.0,
+                            on_press=self._toggle_theme,
+                        ),
+                        spacing=0.25,
+                        align_y=0.5,
+                    ),
+                    spacing=0.35,
+                    align_y=0.5,
+                    margin_x=0.6,
+                    margin_y=0.3,
+                    grow_x=True,
+                )
 
         nav_header = rio.Card(
             header_content,
