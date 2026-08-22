@@ -81,7 +81,7 @@ class StockAutocompleteInput(rio.Component):
         self.suggestions = []
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 55.0
+        is_mobile = self.session.window_width < 45.0
 
         # Input field with stable key to prevent loss of focus
         input_widget = rio.TextInput(

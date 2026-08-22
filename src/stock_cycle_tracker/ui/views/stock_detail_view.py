@@ -67,7 +67,7 @@ class StockDetailView(rio.Component):
         self.show_cycle_anchors = not self.show_cycle_anchors
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 55.0
+        is_mobile = self.session.window_width < 45.0
         is_portrait = self.session.window_height > self.session.window_width
         is_dark_mode = not getattr(self.session.theme, "is_light_theme", False)
 

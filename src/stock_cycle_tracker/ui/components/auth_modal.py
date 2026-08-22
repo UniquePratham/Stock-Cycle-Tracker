@@ -107,7 +107,7 @@ class AuthModal(rio.Component):
             self.on_auth_success(user)
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 55.0
+        is_mobile = self.session.window_width < 45.0
 
         # Modal Header
         header = rio.Row(

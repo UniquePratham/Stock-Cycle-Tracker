@@ -135,7 +135,7 @@ class ExcelView(rio.Component):
             self.is_exporting = False
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 55.0
+        is_mobile = self.session.window_width < 45.0
         container = ServiceContainer.get()
         all_cycles = container.repository.list_all_cycles()
         total_cycles_count = len(all_cycles)

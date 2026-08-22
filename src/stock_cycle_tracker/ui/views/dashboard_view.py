@@ -144,7 +144,7 @@ class DashboardView(rio.Component):
             self.is_submitting_cycle = False
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 55.0
+        is_mobile = self.session.window_width < 45.0
         container = ServiceContainer.get()
         market_status = container.provider.get_market_status()
         analyses = self._get_analyses()

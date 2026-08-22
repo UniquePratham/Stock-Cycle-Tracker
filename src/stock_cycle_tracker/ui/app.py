@@ -326,38 +326,34 @@ class RootComponent(rio.Component):
                         grow_x=False,
                     ),
                     rio.Spacer(),
-                    rio.Row(
-                        rio.Button(
-                            "Sign In",
-                            icon="material/login",
-                            shape="rounded",
-                            style="minor",
-                            color="neutral",
-                            min_height=2.0,
-                            on_press=self._open_signin,
-                        ),
-                        rio.Button(
-                            "Create Account",
-                            icon="material/person-add",
-                            shape="rounded",
-                            style="major",
-                            color="primary",
-                            min_height=2.0,
-                            on_press=self._open_signup,
-                        ),
-                        rio.Button(
-                            "Dark" if self.is_dark_mode else "Light",
-                            icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                            shape="rounded",
-                            style="minor",
-                            color="neutral",
-                            min_height=2.0,
-                            on_press=self._toggle_theme,
-                        ),
-                        spacing=0.25,
-                        align_y=0.5,
+                    rio.Button(
+                        "Sign In",
+                        icon="material/login",
+                        shape="rounded",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=2.0,
+                        on_press=self._open_signin,
                     ),
-                    spacing=0.35,
+                    rio.Button(
+                        "Create Account",
+                        icon="material/person-add",
+                        shape="rounded",
+                        style="major",
+                        color="primary",
+                        min_height=2.0,
+                        on_press=self._open_signup,
+                    ),
+                    rio.Button(
+                        "",
+                        icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                        shape="rounded",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=2.0,
+                        on_press=self._toggle_theme,
+                    ),
+                    spacing=0.2,
                     align_y=0.5,
                     margin_x=0.6,
                     margin_y=0.3,
@@ -410,12 +406,28 @@ class RootComponent(rio.Component):
         else:
             view_content = DashboardView(on_navigate=self.navigate)
 
+        # For the homepage, overlay navbar on top of the full-bleed background
+        is_homepage = (self.current_user is None or self.active_page == "home") and not self.is_auth_modal_open
+
+        if is_homepage:
+            return rio.Stack(
+                view_content,
+                rio.Column(
+                    nav_header,
+                    rio.Spacer(),
+                    grow_x=True,
+                    grow_y=True,
+                ),
+                grow_x=True,
+                grow_y=True,
+            )
+
         return rio.Column(
             nav_header,
             view_content,
             spacing=0.15,
             grow_x=True,
-            align_y=0.0,
+            grow_y=True,
         )
 
 
