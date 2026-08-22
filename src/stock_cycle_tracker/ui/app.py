@@ -109,7 +109,7 @@ class RootComponent(rio.Component):
         )
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 45.0
+        is_mobile = self.session.window_width < 50.0
 
         # Brand Icon component
         brand_icon_component: rio.Component
@@ -186,74 +186,155 @@ class RootComponent(rio.Component):
         # Responsive Navbar Header
         header_content: rio.Component
         if is_mobile:
-            mobile_top_bar = rio.Row(
-                rio.Row(
-                    brand_icon_component,
-                    rio.Column(
+            if self.current_user:
+                av = self.current_user.avatar
+                mobile_top_bar = rio.Row(
+                    rio.Row(
+                        brand_icon_component,
+                        rio.Column(
+                            rio.Text(
+                                "CYCLE TRACKER",
+                                font_weight="bold",
+                                font_size=0.92,
+                            ),
+                            rio.Text(
+                                "Cycle Intelligence",
+                                font_size=0.64,
+                                fill=COLOR_TEXT_MUTED,
+                            ),
+                            spacing=0.01,
+                        ),
+                        spacing=0.25,
+                        align_y=0.5,
+                        align_x=0.0,
+                        grow_x=False,
+                    ),
+                    rio.Spacer(),
+                    rio.Button(
+                        "",
+                        icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                        shape="circle",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=1.8,
+                        min_width=1.8,
+                        on_press=self._toggle_theme,
+                    ),
+                    rio.Button(
+                        "",
+                        icon="material/menu" if not self.is_mobile_menu_open else "material/close",
+                        shape="rounded",
+                        style="minor",
+                        color="primary" if self.is_mobile_menu_open else "neutral",
+                        min_height=1.8,
+                        min_width=2.2,
+                        on_press=self._toggle_mobile_menu,
+                    ),
+                    spacing=0.2,
+                    align_y=0.5,
+                    margin_x=0.4,
+                    margin_y=0.25,
+                    grow_x=True,
+                )
+
+                if self.is_mobile_menu_open:
+                    user_drawer_card = rio.Card(
+                        rio.Row(
+                            rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.3, min_height=1.3),
+                            rio.Column(
+                                rio.Text(self.current_user.display_name, font_weight="bold", font_size=0.82),
+                                rio.Text(f"{av.name} • Local SQLite DB", font_size=0.65, fill=rio.Color.from_hex("#10B981")),
+                                spacing=0.01,
+                            ),
+                            rio.Spacer(),
+                            rio.Button(
+                                "Logout",
+                                icon="material/logout",
+                                shape="rounded",
+                                style="plain-text",
+                                color="danger",
+                                min_height=1.6,
+                                on_press=self._sign_out,
+                            ),
+                            spacing=0.25,
+                            align_y=0.5,
+                            margin=0.3,
+                            grow_x=True,
+                        ),
+                        corner_radius=0.4,
+                        color="hud",
+                        grow_x=True,
+                    )
+
+                    menu_drawer = rio.Column(
+                        rio.Separator(),
+                        user_drawer_card,
+                        self._build_nav_button("Dashboard", "material/dashboard", "dashboard", is_mobile=True),
+                        self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles", is_mobile=True),
+                        self._build_nav_button("Excel Ingestion", "material/table-view", "excel", is_mobile=True),
+                        self._build_nav_button("Alerts", "material/notifications", "alerts", is_mobile=True),
+                        spacing=0.25,
+                        margin_x=0.4,
+                        margin_bottom=0.4,
+                        margin_top=0.15,
+                        grow_x=True,
+                    )
+                    header_content = rio.Column(
+                        mobile_top_bar,
+                        menu_drawer,
+                        spacing=0.15,
+                        grow_x=True,
+                    )
+                else:
+                    header_content = mobile_top_bar
+            else:
+                # Guest Mobile Header
+                mobile_top_bar = rio.Row(
+                    rio.Row(
+                        brand_icon_component,
                         rio.Text(
                             "CYCLE TRACKER",
                             font_weight="bold",
-                            font_size=0.98,
+                            font_size=0.88,
                         ),
-                        rio.Text(
-                            "Cycle Intelligence",
-                            font_size=0.68,
-                            fill=COLOR_TEXT_MUTED,
-                        ),
-                        spacing=0.02,
+                        spacing=0.2,
+                        align_y=0.5,
+                        grow_x=False,
                     ),
-                    spacing=0.35,
+                    rio.Spacer(),
+                    rio.Button(
+                        "Sign In",
+                        shape="rounded",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=1.8,
+                        on_press=self._open_signin,
+                    ),
+                    rio.Button(
+                        "Join",
+                        icon="material/person-add",
+                        shape="rounded",
+                        style="major",
+                        color="primary",
+                        min_height=1.8,
+                        on_press=self._open_signup,
+                    ),
+                    rio.Button(
+                        "",
+                        icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
+                        shape="circle",
+                        style="plain-text",
+                        color="neutral",
+                        min_height=1.8,
+                        min_width=1.8,
+                        on_press=self._toggle_theme,
+                    ),
+                    spacing=0.15,
                     align_y=0.5,
-                    align_x=0.0,
-                    grow_x=False,
-                ),
-                rio.Spacer(),
-                rio.Button(
-                    "Dark" if self.is_dark_mode else "Light",
-                    icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                    shape="rounded",
-                    style="minor",
-                    color="neutral",
-                    min_height=2.0,
-                    on_press=self._toggle_theme,
-                ),
-                rio.Button(
-                    "",
-                    icon="material/menu" if not self.is_mobile_menu_open else "material/close",
-                    shape="rounded",
-                    style="minor",
-                    color="neutral",
-                    min_height=2.0,
-                    min_width=2.4,
-                    on_press=self._toggle_mobile_menu,
-                ) if self.current_user else rio.Spacer(),
-                spacing=0.25,
-                align_y=0.5,
-                margin_x=0.4,
-                margin_y=0.3,
-                grow_x=True,
-            )
-
-            if self.is_mobile_menu_open and self.current_user:
-                menu_drawer = rio.Column(
-                    rio.Separator(),
-                    self._build_nav_button("Dashboard", "material/dashboard", "dashboard", is_mobile=True),
-                    self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles", is_mobile=True),
-                    self._build_nav_button("Excel Ingestion", "material/table-view", "excel", is_mobile=True),
-                    self._build_nav_button("Alerts", "material/notifications", "alerts", is_mobile=True),
-                    spacing=0.3,
-                    margin_x=0.5,
-                    margin_bottom=0.5,
-                    margin_top=0.2,
+                    margin_x=0.35,
+                    margin_y=0.2,
                     grow_x=True,
                 )
-                header_content = rio.Column(
-                    mobile_top_bar,
-                    menu_drawer,
-                    spacing=0.2,
-                    grow_x=True,
-                )
-            else:
                 header_content = mobile_top_bar
         else:
             # Desktop Header

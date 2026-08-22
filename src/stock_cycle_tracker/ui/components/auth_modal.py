@@ -124,7 +124,7 @@ class AuthModal(rio.Component):
         )
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 45.0
+        is_mobile = self.session.window_width < 50.0
 
         # Modal Header with glowing icon badge
         header_icon = rio.Card(
