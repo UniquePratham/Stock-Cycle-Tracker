@@ -109,7 +109,7 @@ class RootComponent(rio.Component):
         )
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 55.0
+        is_mobile = self.session.window_width < 45.0
 
         # Brand Icon component
         brand_icon_component: rio.Component
