@@ -208,7 +208,6 @@ class RootComponent(rio.Component):
                     grow_x=False,
                 ),
                 rio.Spacer(),
-                user_widget,
                 rio.Button(
                     "Dark" if self.is_dark_mode else "Light",
                     icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
@@ -227,7 +226,7 @@ class RootComponent(rio.Component):
                     min_height=2.0,
                     min_width=2.4,
                     on_press=self._toggle_mobile_menu,
-                ),
+                ) if self.current_user else rio.Spacer(),
                 spacing=0.25,
                 align_y=0.5,
                 margin_x=0.4,
@@ -235,7 +234,7 @@ class RootComponent(rio.Component):
                 grow_x=True,
             )
 
-            if self.is_mobile_menu_open:
+            if self.is_mobile_menu_open and self.current_user:
                 menu_drawer = rio.Column(
                     rio.Separator(),
                     self._build_nav_button("Dashboard", "material/dashboard", "dashboard", is_mobile=True),
@@ -258,6 +257,19 @@ class RootComponent(rio.Component):
                 header_content = mobile_top_bar
         else:
             # Desktop Header
+            nav_links = (
+                rio.Row(
+                    self._build_nav_button("Dashboard", "material/dashboard", "dashboard"),
+                    self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
+                    self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
+                    self._build_nav_button("Alerts", "material/notifications", "alerts"),
+                    spacing=0.3,
+                    align_y=0.5,
+                )
+                if self.current_user
+                else rio.Spacer()
+            )
+
             header_content = rio.Row(
                 rio.Row(
                     brand_icon_component,
@@ -280,14 +292,7 @@ class RootComponent(rio.Component):
                     grow_x=False,
                 ),
                 rio.Spacer(),
-                rio.Row(
-                    self._build_nav_button("Dashboard", "material/dashboard", "dashboard"),
-                    self._build_nav_button("Manage Cycles", "material/calendar-month", "manage_cycles"),
-                    self._build_nav_button("Excel Ingestion", "material/table-view", "excel"),
-                    self._build_nav_button("Alerts", "material/notifications", "alerts"),
-                    spacing=0.3,
-                    align_y=0.5,
-                ),
+                nav_links,
                 rio.Spacer(),
                 user_widget,
                 rio.Button(
@@ -301,8 +306,8 @@ class RootComponent(rio.Component):
                 ),
                 spacing=0.5,
                 align_y=0.5,
-                margin_x=1.0,
-                margin_y=0.4,
+                margin_x=0.8,
+                margin_y=0.35,
                 grow_x=True,
             )
 
@@ -311,7 +316,7 @@ class RootComponent(rio.Component):
             corner_radius=0.5,
             color="neutral",
             margin_x=0.4 if is_mobile else 0.8,
-            margin_top=0.3 if is_mobile else 0.5,
+            margin_top=0.3 if is_mobile else 0.4,
             margin_bottom=0.2 if is_mobile else 0.3,
             grow_x=True,
             grow_y=False,
@@ -352,7 +357,7 @@ class RootComponent(rio.Component):
                 ),
                 align_x=0.5,
                 align_y=0.5,
-                margin_y=1.0,
+                margin_y=0.8,
                 grow_x=True,
             )
         elif self.current_user is None or self.active_page == "home":
@@ -374,15 +379,6 @@ class RootComponent(rio.Component):
             view_content = AlertsView(on_navigate=self.navigate)
         else:
             view_content = DashboardView(on_navigate=self.navigate)
-
-        return rio.Column(
-            nav_header,
-            disclaimer_banner,
-            view_content,
-            spacing=0.15,
-            grow_x=True,
-            align_y=0.0,
-        )
 
         return rio.Column(
             nav_header,
