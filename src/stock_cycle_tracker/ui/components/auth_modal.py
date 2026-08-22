@@ -1,4 +1,4 @@
-"""Authentication Modal with Sign In, Sign Up, Avatar Selection, and Local Storage Disclaimer."""
+"""Modern glassmorphic Authentication Modal with sleek input containers, icons, avatar selection, and privacy notices."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 import rio
 
-from stock_cycle_tracker.domain.user import AVAILABLE_AVATARS, AvatarInfo, User
+from stock_cycle_tracker.domain.user import AVAILABLE_AVATARS, User
 from stock_cycle_tracker.ui.state import ServiceContainer
 from stock_cycle_tracker.ui.theme import (
     COLOR_BORDER,
@@ -19,7 +19,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class AuthModal(rio.Component):
-    """Interactive glassmorphic dialog for user registration, authentication, and avatar configuration."""
+    """Refined, modern dialog for user registration, authentication, and avatar configuration."""
 
     on_auth_success: Callable[[User], None]
     on_close: Callable[[], None]
@@ -106,16 +106,40 @@ class AuthModal(rio.Component):
         if user:
             self.on_auth_success(user)
 
+    def _build_input_card(self, icon: str, input_widget: rio.Component) -> rio.Component:
+        """Wraps text inputs inside a sleek, dark rounded card with a leading icon."""
+        return rio.Card(
+            rio.Row(
+                rio.Icon(icon, fill=COLOR_TEXT_MUTED, min_width=1.2, min_height=1.2),
+                input_widget,
+                spacing=0.25,
+                margin_x=0.4,
+                margin_y=0.1,
+                align_y=0.5,
+                grow_x=True,
+            ),
+            corner_radius=0.45,
+            color="hud",
+            grow_x=True,
+        )
+
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 45.0
 
-        # Modal Header
+        # Modal Header with glowing icon badge
+        header_icon = rio.Card(
+            rio.Icon("material/lock", fill=rio.Color.from_hex("#3B82F6"), min_width=1.3, min_height=1.3),
+            corner_radius=0.45,
+            color="hud",
+            margin=0.15,
+        )
+
         header = rio.Row(
             rio.Row(
-                rio.Icon("material/lock", fill=rio.Color.from_hex("#3B82F6"), min_width=1.3, min_height=1.3),
+                header_icon,
                 rio.Column(
-                    rio.Text("Investor Account & Access", font_weight="bold", font_size=1.05),
-                    rio.Text("Manage your tracked portfolios with institutional privacy", font_size=0.72, fill=COLOR_TEXT_MUTED),
+                    rio.Text("Investor Account & Access", font_weight="bold", font_size=1.12),
+                    rio.Text("Manage tracked portfolios with offline institutional privacy", font_size=0.72, fill=COLOR_TEXT_MUTED),
                     spacing=0.02,
                 ),
                 spacing=0.35,
@@ -125,10 +149,11 @@ class AuthModal(rio.Component):
             rio.Button(
                 "",
                 icon="material/close",
-                shape="rounded",
+                shape="circle",
                 style="plain-text",
                 color="neutral",
                 min_height=1.8,
+                min_width=1.8,
                 on_press=self.on_close,
             ),
             align_y=0.5,
@@ -144,7 +169,7 @@ class AuthModal(rio.Component):
                     shape="rounded",
                     style="major" if self.active_tab == "signin" else "plain-text",
                     color="primary" if self.active_tab == "signin" else "neutral",
-                    min_height=1.8,
+                    min_height=2.0,
                     grow_x=True,
                     on_press=lambda: self._set_tab("signin"),
                 ),
@@ -154,21 +179,21 @@ class AuthModal(rio.Component):
                     shape="rounded",
                     style="major" if self.active_tab == "signup" else "plain-text",
                     color="primary" if self.active_tab == "signup" else "neutral",
-                    min_height=1.8,
+                    min_height=2.0,
                     grow_x=True,
                     on_press=lambda: self._set_tab("signup"),
                 ),
-                spacing=0.2,
+                spacing=0.15,
                 margin=0.15,
                 align_y=0.5,
                 grow_x=True,
             ),
-            corner_radius=0.35,
+            corner_radius=0.5,
             color="hud",
             grow_x=True,
         )
 
-        # Alerts / Messages
+        # Alerts / Feedback
         feedback_banner: Optional[rio.Component] = None
         if self.error_message:
             feedback_banner = rio.Card(
@@ -176,11 +201,11 @@ class AuthModal(rio.Component):
                     rio.Icon("material/error", fill=COLOR_DOWN_STRONG, min_width=1.1, min_height=1.1),
                     rio.Text(self.error_message, font_size=0.78, fill=COLOR_DOWN_STRONG, grow_x=True),
                     spacing=0.3,
-                    margin=0.3,
+                    margin=0.35,
                     align_y=0.5,
                     grow_x=True,
                 ),
-                corner_radius=0.3,
+                corner_radius=0.4,
                 color="hud",
                 grow_x=True,
             )
@@ -190,30 +215,36 @@ class AuthModal(rio.Component):
                     rio.Icon("material/check-circle", fill=COLOR_UP_STRONG, min_width=1.1, min_height=1.1),
                     rio.Text(self.success_message, font_size=0.78, fill=COLOR_UP_STRONG, grow_x=True),
                     spacing=0.3,
-                    margin=0.3,
+                    margin=0.35,
                     align_y=0.5,
                     grow_x=True,
                 ),
-                corner_radius=0.3,
+                corner_radius=0.4,
                 color="hud",
                 grow_x=True,
             )
 
-        # Tab Content
+        # Tab Form Content
         form_content: rio.Component
 
         if self.active_tab == "signin":
             form_content = rio.Column(
-                rio.TextInput(
-                    label="Username or Email Address",
-                    text=self.bind().signin_identifier,
-                    grow_x=True,
+                self._build_input_card(
+                    "material/person",
+                    rio.TextInput(
+                        label="Username or Email",
+                        text=self.bind().signin_identifier,
+                        grow_x=True,
+                    ),
                 ),
-                rio.TextInput(
-                    label="Password",
-                    is_secret=True,
-                    text=self.bind().signin_password,
-                    grow_x=True,
+                self._build_input_card(
+                    "material/lock",
+                    rio.TextInput(
+                        label="Password",
+                        is_secret=True,
+                        text=self.bind().signin_password,
+                        grow_x=True,
+                    ),
                 ),
                 rio.Button(
                     "Sign In to Portfolio",
@@ -221,15 +252,20 @@ class AuthModal(rio.Component):
                     shape="rounded",
                     style="major",
                     color="primary",
-                    min_height=2.2,
+                    min_height=2.4,
                     is_loading=self.is_loading,
                     grow_x=True,
                     on_press=self._handle_signin,
                 ),
                 rio.Row(
                     rio.Separator(grow_x=True),
-                    rio.Text("OR", font_size=0.7, fill=COLOR_TEXT_DIM, margin_x=0.3),
+                    rio.Card(
+                        rio.Text("OR", font_size=0.65, font_weight="bold", fill=COLOR_TEXT_DIM, margin_x=0.35, margin_y=0.08),
+                        corner_radius=0.3,
+                        color="hud",
+                    ),
                     rio.Separator(grow_x=True),
+                    spacing=0.2,
                     align_y=0.5,
                     margin_y=0.1,
                     grow_x=True,
@@ -240,7 +276,7 @@ class AuthModal(rio.Component):
                     shape="rounded",
                     style="minor",
                     color="secondary",
-                    min_height=2.0,
+                    min_height=2.2,
                     grow_x=True,
                     on_press=self._handle_demo_login,
                 ),
@@ -254,25 +290,25 @@ class AuthModal(rio.Component):
                 is_sel = self.signup_avatar_id == av.id
                 av_id = av.id
                 avatar_cards.append(
-                    rio.Card(
-                        rio.Column(
-                            rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.4, min_height=1.4),
-                            rio.Text(av.name, font_size=0.75, font_weight="bold", align_x=0.5),
-                            rio.Text(av.role, font_size=0.65, fill=COLOR_TEXT_MUTED, align_x=0.5),
-                            spacing=0.03,
-                            margin=0.25,
+                    rio.Button(
+                        content=rio.Column(
+                            rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.2, min_height=1.2),
+                            rio.Text(av.name, font_size=0.7, font_weight="bold", align_x=0.5),
+                            rio.Text(av.role, font_size=0.6, fill=COLOR_TEXT_MUTED, align_x=0.5),
+                            spacing=0.02,
+                            margin=0.2,
                             align_x=0.5,
                             align_y=0.5,
-                            grow_x=True,
                         ),
-                        corner_radius=0.3,
-                        color="primary" if is_sel else "hud",
+                        shape="rounded",
+                        style="major" if is_sel else "minor",
+                        color="primary" if is_sel else "neutral",
                         on_press=lambda a=av_id: self._select_avatar(a),
                     )
                 )
 
             avatar_picker = rio.Column(
-                rio.Text("Choose Your Trader Avatar", font_size=0.78, font_weight="bold", fill=COLOR_TEXT_MUTED),
+                rio.Text("Select Trader Persona Avatar", font_size=0.75, font_weight="bold", fill=COLOR_TEXT_MUTED),
                 rio.FlowContainer(
                     *avatar_cards,
                     spacing=0.25,
@@ -281,48 +317,72 @@ class AuthModal(rio.Component):
                     justify="justify",
                     grow_x=True,
                 ),
-                spacing=0.2,
+                spacing=0.15,
                 grow_x=True,
             )
 
+            row_username_email: rio.Component
+            if is_mobile:
+                row_username_email = rio.Column(
+                    self._build_input_card(
+                        "material/alternate-email",
+                        rio.TextInput(
+                            label="Username",
+                            text=self.bind().signup_username,
+                            grow_x=True,
+                        ),
+                    ),
+                    self._build_input_card(
+                        "material/mail",
+                        rio.TextInput(
+                            label="Email Address",
+                            text=self.bind().signup_email,
+                            grow_x=True,
+                        ),
+                    ),
+                    spacing=0.3,
+                    grow_x=True,
+                )
+            else:
+                row_username_email = rio.Row(
+                    self._build_input_card(
+                        "material/alternate-email",
+                        rio.TextInput(
+                            label="Username",
+                            text=self.bind().signup_username,
+                            grow_x=True,
+                        ),
+                    ),
+                    self._build_input_card(
+                        "material/mail",
+                        rio.TextInput(
+                            label="Email Address",
+                            text=self.bind().signup_email,
+                            grow_x=True,
+                        ),
+                    ),
+                    spacing=0.3,
+                    grow_x=True,
+                )
+
             form_content = rio.Column(
-                rio.TextInput(
-                    label="Full Name / Display Name",
-                    text=self.bind().signup_full_name,
-                    grow_x=True,
+                self._build_input_card(
+                    "material/badge",
+                    rio.TextInput(
+                        label="Full Name / Display Name",
+                        text=self.bind().signup_full_name,
+                        grow_x=True,
+                    ),
                 ),
-                rio.Row(
+                row_username_email,
+                self._build_input_card(
+                    "material/key",
                     rio.TextInput(
-                        label="Username (letters & numbers)",
-                        text=self.bind().signup_username,
+                        label="Password (min 6 characters)",
+                        is_secret=True,
+                        text=self.bind().signup_password,
                         grow_x=True,
                     ),
-                    rio.TextInput(
-                        label="Email Address",
-                        text=self.bind().signup_email,
-                        grow_x=True,
-                    ),
-                    spacing=0.3,
-                    grow_x=True,
-                ) if not is_mobile else rio.Column(
-                    rio.TextInput(
-                        label="Username (letters & numbers)",
-                        text=self.bind().signup_username,
-                        grow_x=True,
-                    ),
-                    rio.TextInput(
-                        label="Email Address",
-                        text=self.bind().signup_email,
-                        grow_x=True,
-                    ),
-                    spacing=0.3,
-                    grow_x=True,
-                ),
-                rio.TextInput(
-                    label="Password (min 6 characters)",
-                    is_secret=True,
-                    text=self.bind().signup_password,
-                    grow_x=True,
                 ),
                 avatar_picker,
                 rio.Button(
@@ -331,7 +391,7 @@ class AuthModal(rio.Component):
                     shape="rounded",
                     style="major",
                     color="primary",
-                    min_height=2.2,
+                    min_height=2.4,
                     is_loading=self.is_loading,
                     grow_x=True,
                     on_press=self._handle_signup,
@@ -352,7 +412,7 @@ class AuthModal(rio.Component):
                         fill=rio.Color.from_hex("#10B981"),
                     ),
                     rio.Text(
-                        "Your credentials, stocks, and research cycles are stored securely on your local computer database. Easily switch to cloud DB anytime.",
+                        "Your credentials, stocks, and research cycles are stored securely on your local computer database (SQLite).",
                         font_size=0.65,
                         fill=COLOR_TEXT_DIM,
                     ),
@@ -360,28 +420,30 @@ class AuthModal(rio.Component):
                     grow_x=True,
                 ),
                 spacing=0.3,
-                margin=0.3,
+                margin=0.35,
                 align_y=0.5,
                 grow_x=True,
             ),
-            corner_radius=0.3,
+            corner_radius=0.4,
             color="hud",
             grow_x=True,
         )
 
+        modal_body = rio.Column(
+            header,
+            rio.Separator(),
+            tab_switcher,
+            feedback_banner if feedback_banner else rio.Spacer(),
+            form_content,
+            disclaimer_card,
+            spacing=0.4,
+            margin=0.8 if is_mobile else 1.2,
+            grow_x=True,
+        )
+
         return rio.Card(
-            rio.Column(
-                header,
-                rio.Separator(),
-                tab_switcher,
-                feedback_banner if feedback_banner else rio.Spacer(),
-                form_content,
-                disclaimer_card,
-                spacing=0.4,
-                margin=0.6 if is_mobile else 0.8,
-                grow_x=True,
-            ),
-            corner_radius=0.5,
+            modal_body,
+            corner_radius=0.8,
             color="neutral",
             min_width=24.0 if not is_mobile else 18.0,
             grow_x=True,

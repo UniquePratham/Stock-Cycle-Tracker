@@ -372,21 +372,38 @@ class RootComponent(rio.Component):
             align_y=0.0,
         )
 
+        if self.is_auth_modal_open:
+            return rio.Stack(
+                HomeView(
+                    on_open_signin=self._open_signin,
+                    on_open_signup=self._open_signup,
+                    on_quick_demo=self._handle_quick_demo,
+                ),
+                rio.Rectangle(
+                    fill=rio.Color.from_hex("#000000B3"),
+                    grow_x=True,
+                    grow_y=True,
+                ),
+                rio.Column(
+                    AuthModal(
+                        active_tab=self.auth_modal_initial_tab,
+                        on_auth_success=self._on_auth_success,
+                        on_close=self._close_auth_modal,
+                    ),
+                    align_x=0.5,
+                    align_y=0.5,
+                    margin_x=0.5 if is_mobile else 2.0,
+                    margin_y=0.5,
+                    grow_x=True,
+                    grow_y=True,
+                ),
+                grow_x=True,
+                grow_y=True,
+            )
+
         # Dynamic View Selection with Auth Gate
         view_content: rio.Component
-        if self.is_auth_modal_open:
-            view_content = rio.Column(
-                AuthModal(
-                    active_tab=self.auth_modal_initial_tab,
-                    on_auth_success=self._on_auth_success,
-                    on_close=self._close_auth_modal,
-                ),
-                align_x=0.5,
-                align_y=0.5,
-                margin_y=0.8,
-                grow_x=True,
-            )
-        elif self.current_user is None or self.active_page == "home":
+        if self.current_user is None or self.active_page == "home":
             view_content = HomeView(
                 on_open_signin=self._open_signin,
                 on_open_signup=self._open_signup,
@@ -407,7 +424,7 @@ class RootComponent(rio.Component):
             view_content = DashboardView(on_navigate=self.navigate)
 
         # For the homepage, overlay navbar on top of the full-bleed background
-        is_homepage = (self.current_user is None or self.active_page == "home") and not self.is_auth_modal_open
+        is_homepage = self.current_user is None or self.active_page == "home"
 
         if is_homepage:
             return rio.Stack(
