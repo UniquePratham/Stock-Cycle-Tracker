@@ -109,7 +109,7 @@ class RootComponent(rio.Component):
         )
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 50.0
+        is_mobile = self.session.window_width < 60.0
 
         # Brand Icon component
         brand_icon_component: rio.Component
@@ -210,24 +210,18 @@ class RootComponent(rio.Component):
                         grow_x=False,
                     ),
                     rio.Spacer(),
-                    rio.Button(
-                        "",
+                    rio.IconButton(
                         icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                        shape="circle",
-                        style="plain-text",
+                        style="minor",
                         color="neutral",
-                        min_height=1.8,
-                        min_width=1.8,
+                        min_size=2.0,
                         on_press=self._toggle_theme,
                     ),
-                    rio.Button(
-                        "",
+                    rio.IconButton(
                         icon="material/menu" if not self.is_mobile_menu_open else "material/close",
-                        shape="rounded",
-                        style="minor",
+                        style="major" if self.is_mobile_menu_open else "minor",
                         color="primary" if self.is_mobile_menu_open else "neutral",
-                        min_height=1.8,
-                        min_width=2.2,
+                        min_size=2.0,
                         on_press=self._toggle_mobile_menu,
                     ),
                     spacing=0.2,
@@ -319,14 +313,11 @@ class RootComponent(rio.Component):
                         min_height=1.8,
                         on_press=self._open_signup,
                     ),
-                    rio.Button(
-                        "",
+                    rio.IconButton(
                         icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                        shape="circle",
-                        style="plain-text",
+                        style="minor",
                         color="neutral",
-                        min_height=1.8,
-                        min_width=1.8,
+                        min_size=2.0,
                         on_press=self._toggle_theme,
                     ),
                     spacing=0.15,
@@ -370,13 +361,11 @@ class RootComponent(rio.Component):
                     ),
                     rio.Spacer(),
                     user_widget,
-                    rio.Button(
-                        "Dark" if self.is_dark_mode else "Light",
+                    rio.IconButton(
                         icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                        shape="rounded",
                         style="minor",
                         color="neutral",
-                        min_height=2.0,
+                        min_size=2.2,
                         on_press=self._toggle_theme,
                     ),
                     spacing=0.35,
@@ -425,16 +414,14 @@ class RootComponent(rio.Component):
                         min_height=2.0,
                         on_press=self._open_signup,
                     ),
-                    rio.Button(
-                        "",
+                    rio.IconButton(
                         icon="material/dark-mode" if self.is_dark_mode else "material/light-mode",
-                        shape="rounded",
-                        style="plain-text",
+                        style="minor",
                         color="neutral",
-                        min_height=2.0,
+                        min_size=2.2,
                         on_press=self._toggle_theme,
                     ),
-                    spacing=0.2,
+                    spacing=0.25,
                     align_y=0.5,
                     margin_x=0.6,
                     margin_y=0.3,

@@ -67,7 +67,7 @@ class StockDetailView(rio.Component):
         self.show_cycle_anchors = not self.show_cycle_anchors
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 50.0
+        is_mobile = self.session.window_width < 55.0
         is_portrait = self.session.window_height > self.session.window_width
         is_dark_mode = not getattr(self.session.theme, "is_light_theme", False)
 
@@ -141,10 +141,10 @@ class StockDetailView(rio.Component):
                 font_size=0.72,
                 font_weight="bold",
                 fill=rio.Color.from_hex("#60A5FA"),
-                margin_x=0.4,
+                margin_x=0.45,
                 margin_y=0.1,
             ),
-            corner_radius=0.3,
+            corner_radius=0.25,
             color="hud",
             grow_x=False,
             grow_y=False,
@@ -412,16 +412,20 @@ class StockDetailView(rio.Component):
             )
 
         timeframe_bar = rio.Card(
-            rio.Row(
+            rio.FlowContainer(
                 *timeframe_buttons,
                 spacing=0.1,
+                row_spacing=0.1,
+                column_spacing=0.1,
+                justify="left",
                 align_y=0.5,
                 margin_x=0.15,
                 margin_y=0.08,
+                grow_x=True,
             ),
             corner_radius=0.3,
             color="hud",
-            grow_x=False,
+            grow_x=True,
         )
 
         indicator_toggles = [
@@ -468,41 +472,35 @@ class StockDetailView(rio.Component):
         ]
 
         indicators_bar = rio.Card(
-            rio.Row(
+            rio.FlowContainer(
                 *indicator_toggles,
                 spacing=0.1,
+                row_spacing=0.1,
+                column_spacing=0.1,
+                justify="left",
                 align_y=0.5,
                 margin_x=0.15,
                 margin_y=0.08,
+                grow_x=True,
             ),
             corner_radius=0.3,
             color="hud",
-            grow_x=False,
+            grow_x=True,
         )
 
-        if is_mobile:
-            chart_toolbar = rio.Column(
-                timeframe_bar,
-                indicators_bar,
-                spacing=0.25,
-                margin_x=0.3,
-                margin_y=0.2,
-                grow_x=True,
-            )
-        else:
-            chart_toolbar = rio.FlowContainer(
-                timeframe_bar,
-                indicators_bar,
-                spacing=0.4,
-                row_spacing=0.3,
-                column_spacing=0.4,
-                justify="justify",
-                align_y=0.5,
-                margin_x=0.5,
-                margin_top=0.25,
-                margin_bottom=0.1,
-                grow_x=True,
-            )
+        chart_toolbar = rio.FlowContainer(
+            timeframe_bar,
+            indicators_bar,
+            spacing=0.3,
+            row_spacing=0.25,
+            column_spacing=0.3,
+            justify="justify",
+            align_y=0.5,
+            margin_x=0.4,
+            margin_top=0.25,
+            margin_bottom=0.1,
+            grow_x=True,
+        )
 
         # Plotly Chart Card
         chart_card = rio.Card(

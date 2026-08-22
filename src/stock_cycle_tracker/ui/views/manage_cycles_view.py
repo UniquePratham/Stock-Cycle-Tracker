@@ -191,7 +191,7 @@ class ManageCyclesView(rio.Component):
             await self._show_toast(f"Deleted Successfully: {deleted_name} and all associated cycles removed.", is_error=False)
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 50.0
+        is_mobile = self.session.window_width < 55.0
         container = ServiceContainer.get()
         all_cycles = container.repository.list_all_cycles()
 
@@ -313,7 +313,7 @@ class ManageCyclesView(rio.Component):
             form_inputs = rio.Row(
                 StockAutocompleteInput(
                     key="manage_cycles_stock_input_desktop",
-                    label="Stock Symbol / Name (e.g. RELIANCE, TCS, Tata Motors)",
+                    label="Stock Symbol / Name (e.g. RELIANCE, TCS)",
                     text=self.bind().stock_input,
                     on_text_change=self._on_stock_input_change,
                     on_select=self._on_stock_selected,
@@ -322,9 +322,9 @@ class ManageCyclesView(rio.Component):
                 ),
                 rio.TextInput(
                     key="manage_cycles_date_input_desktop",
-                    label="Research Anchor Date (e.g. 10-Jan-2014, 2014-01-10)",
+                    label="Research Date (e.g. 10-Jan-2014)",
                     text=self.bind().date_input_str,
-                    min_width=18.0,
+                    min_width=12.0,
                     align_y=0.0,
                     grow_x=True,
                 ),
@@ -335,12 +335,12 @@ class ManageCyclesView(rio.Component):
                     style="major",
                     color="primary",
                     min_height=2.6,
-                    min_width=11.0,
+                    min_width=8.0,
                     align_y=0.0,
                     is_loading=self.is_submitting,
                     on_press=self._on_add_cycle,
                 ),
-                spacing=0.8,
+                spacing=0.6,
                 align_y=0.0,
                 grow_x=True,
             )

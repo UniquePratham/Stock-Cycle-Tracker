@@ -135,7 +135,7 @@ class ExcelView(rio.Component):
             self.is_exporting = False
 
     def build(self) -> rio.Component:
-        is_mobile = self.session.window_width < 50.0
+        is_mobile = self.session.window_width < 55.0
         container = ServiceContainer.get()
         all_cycles = container.repository.list_all_cycles()
         total_cycles_count = len(all_cycles)
@@ -281,49 +281,75 @@ class ExcelView(rio.Component):
         preview_rows: list[rio.Component] = []
 
         if self.validation_result and self.validation_result.valid_rows:
-            # Header Row
-            preview_rows.append(
-                rio.Row(
-                    rio.Text("#", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=2.5),
-                    rio.Text("STOCK SYMBOL", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.0),
-                    rio.Text("RESEARCH DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.0),
-                    rio.Text("STATUS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.0),
-                    spacing=0.4,
-                    align_y=0.5,
-                    margin_x=0.5,
-                    margin_y=0.2,
-                )
-            )
             top_5 = self.validation_result.valid_rows[:5]
-            for idx, r in enumerate(top_5, start=1):
-                preview_rows.append(
-                    rio.Card(
-                        rio.Row(
-                            rio.Text(str(idx), font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=2.5),
-                            rio.Text(r.stock_name, font_weight="bold", font_size=0.88, min_width=9.0),
-                            rio.Text(r.reference_date.strftime("%d-%b-%Y"), font_size=0.85, min_width=9.0),
-                            rio.Card(
-                                rio.Text("Ready to Import", font_size=0.68, font_weight="bold", fill=COLOR_UP_STRONG, margin_x=0.35, margin_y=0.1),
-                                corner_radius=0.25,
-                                color="neutral",
-                                min_width=7.0,
+            if is_mobile:
+                for idx, r in enumerate(top_5, start=1):
+                    preview_rows.append(
+                        rio.Card(
+                            rio.Column(
+                                rio.Row(
+                                    rio.Text(f"#{idx} {r.stock_name}", font_weight="bold", font_size=0.88),
+                                    rio.Spacer(),
+                                    rio.Card(
+                                        rio.Text("Ready", font_size=0.68, font_weight="bold", fill=COLOR_UP_STRONG, margin_x=0.3, margin_y=0.08),
+                                        corner_radius=0.2,
+                                        color="neutral",
+                                    ),
+                                    align_y=0.5,
+                                    grow_x=True,
+                                ),
+                                rio.Text(f"Date: {r.reference_date.strftime('%d-%b-%Y')}", font_size=0.75, fill=COLOR_TEXT_MUTED),
+                                spacing=0.08,
+                                margin=0.35,
+                                grow_x=True,
                             ),
-                            spacing=0.4,
-                            align_y=0.5,
-                            margin_x=0.5,
-                            margin_y=0.25,
-                        ),
-                        corner_radius=0.3,
-                        color="hud",
-                        grow_x=True,
+                            corner_radius=0.3,
+                            color="hud",
+                            grow_x=True,
+                        )
+                    )
+            else:
+                preview_rows.append(
+                    rio.Row(
+                        rio.Text("#", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=2.5),
+                        rio.Text("STOCK SYMBOL", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.0),
+                        rio.Text("RESEARCH DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.0),
+                        rio.Text("STATUS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.0),
+                        spacing=0.4,
+                        align_y=0.5,
+                        margin_x=0.5,
+                        margin_y=0.2,
                     )
                 )
+                for idx, r in enumerate(top_5, start=1):
+                    preview_rows.append(
+                        rio.Card(
+                            rio.Row(
+                                rio.Text(str(idx), font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=2.5),
+                                rio.Text(r.stock_name, font_weight="bold", font_size=0.88, min_width=8.0),
+                                rio.Text(r.reference_date.strftime("%d-%b-%Y"), font_size=0.85, min_width=8.0),
+                                rio.Card(
+                                    rio.Text("Ready to Import", font_size=0.68, font_weight="bold", fill=COLOR_UP_STRONG, margin_x=0.35, margin_y=0.1),
+                                    corner_radius=0.25,
+                                    color="neutral",
+                                    min_width=6.0,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                                margin_x=0.5,
+                                margin_y=0.25,
+                            ),
+                            corner_radius=0.3,
+                            color="hud",
+                            grow_x=True,
+                        )
+                    )
 
             # Confirm Action Button
             confirm_btn_row = rio.Row(
                 rio.Text(
-                    f"Showing top {len(top_5)} of {len(self.validation_result.valid_rows)} valid records",
-                    font_size=0.78,
+                    f"Top {len(top_5)} of {len(self.validation_result.valid_rows)} valid records",
+                    font_size=0.75 if is_mobile else 0.78,
                     fill=COLOR_TEXT_MUTED,
                     align_y=0.5,
                 ),
@@ -334,7 +360,7 @@ class ExcelView(rio.Component):
                     shape="rounded",
                     style="major",
                     color="success",
-                    min_height=2.3,
+                    min_height=2.2 if is_mobile else 2.3,
                     on_press=self._on_confirm_import,
                 ),
                 align_y=0.5,
@@ -348,64 +374,90 @@ class ExcelView(rio.Component):
             )
         else:
             # Placeholder Sample Preview
-            preview_rows.append(
-                rio.Row(
-                    rio.Text("#", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=2.5),
-                    rio.Text("STOCK SYMBOL", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.0),
-                    rio.Text("SAMPLE DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=9.0),
-                    rio.Text("FORMAT STATUS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=7.0),
-                    spacing=0.4,
-                    align_y=0.5,
-                    margin_x=0.5,
-                    margin_y=0.2,
-                )
-            )
-            mock_samples = [
+            sample_preview = [
                 ("1", "RELIANCE", "10-Jan-2014"),
                 ("2", "TCS", "30-Jan-2016"),
                 ("3", "INFY", "15-Jul-2019"),
                 ("4", "HDFCBANK", "12-Apr-2018"),
                 ("5", "ICICIBANK", "05-May-2017"),
             ]
-            for num, sym, sdate in mock_samples:
-                preview_rows.append(
-                    rio.Card(
-                        rio.Row(
-                            rio.Text(num, font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=2.5),
-                            rio.Text(sym, font_weight="bold", font_size=0.88, min_width=9.0),
-                            rio.Text(sdate, font_size=0.85, min_width=9.0),
-                            rio.Card(
-                                rio.Text("Sample Schema", font_size=0.68, font_weight="bold", fill=COLOR_TEXT_DIM, margin_x=0.35, margin_y=0.1),
-                                corner_radius=0.25,
-                                color="neutral",
-                                min_width=7.0,
+            if is_mobile:
+                for idx, sym, dt in sample_preview:
+                    preview_rows.append(
+                        rio.Card(
+                            rio.Column(
+                                rio.Row(
+                                    rio.Text(f"#{idx} {sym}", font_weight="bold", font_size=0.85),
+                                    rio.Spacer(),
+                                    rio.Text("Sample Schema", font_size=0.68, fill=COLOR_TEXT_DIM),
+                                    align_y=0.5,
+                                    grow_x=True,
+                                ),
+                                rio.Text(f"Sample Date: {dt}", font_size=0.72, fill=COLOR_TEXT_MUTED),
+                                spacing=0.06,
+                                margin=0.3,
+                                grow_x=True,
                             ),
-                            spacing=0.4,
-                            align_y=0.5,
-                            margin_x=0.5,
-                            margin_y=0.2,
-                        ),
-                        corner_radius=0.3,
-                        color="hud",
-                        grow_x=True,
+                            corner_radius=0.25,
+                            color="hud",
+                            grow_x=True,
+                        )
+                    )
+            else:
+                preview_rows.append(
+                    rio.Row(
+                        rio.Text("#", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=2.5),
+                        rio.Text("STOCK SYMBOL", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.0),
+                        rio.Text("SAMPLE DATE", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=8.0),
+                        rio.Text("FORMAT STATUS", font_weight="bold", font_size=0.78, fill=COLOR_TEXT_MUTED, min_width=6.0),
+                        spacing=0.4,
+                        align_y=0.5,
+                        margin_x=0.5,
+                        margin_y=0.2,
                     )
                 )
+                for idx, sym, dt in sample_preview:
+                    preview_rows.append(
+                        rio.Card(
+                            rio.Row(
+                                rio.Text(idx, font_weight="bold", font_size=0.82, fill=COLOR_TEXT_MUTED, min_width=2.5),
+                                rio.Text(sym, font_weight="bold", font_size=0.88, min_width=8.0),
+                                rio.Text(dt, font_size=0.85, min_width=8.0),
+                                rio.Card(
+                                    rio.Text("Sample Schema", font_size=0.68, fill=COLOR_TEXT_DIM, margin_x=0.35, margin_y=0.1),
+                                    corner_radius=0.25,
+                                    color="neutral",
+                                    min_width=6.0,
+                                ),
+                                spacing=0.4,
+                                align_y=0.5,
+                                margin_x=0.5,
+                                margin_y=0.25,
+                            ),
+                            corner_radius=0.3,
+                            color="hud",
+                            grow_x=True,
+                        )
+                    )
 
         preview_card = rio.Card(
             rio.Column(
                 rio.Row(
-                    rio.Icon("material/preview", fill=rio.Color.from_hex("#3B82F6"), min_width=1.3, min_height=1.3),
-                    rio.Text(
-                        "Top 5 Uploaded Data Preview" if self.validation_result else "Spreadsheet Structure Preview (Top 5 Sample)",
-                        font_size=0.98 if is_mobile else 1.1,
-                        font_weight="bold",
+                    rio.Icon("material/preview", fill=rio.Color.from_hex("#3B82F6"), min_width=1.3 if is_mobile else 1.5, min_height=1.3 if is_mobile else 1.5),
+                    rio.Column(
+                        rio.Text("Spreadsheet Structure Preview (Top 5 Sample)", font_size=1.0 if is_mobile else 1.15, font_weight="bold"),
+                        rio.Text("Verify correct column header mapping and date structure before batch importing", font_size=0.75 if is_mobile else 0.82, fill=COLOR_TEXT_MUTED),
+                        spacing=0.02,
+                        align_x=0.0,
                     ),
-                    spacing=0.35,
+                    spacing=0.4,
                     align_y=0.5,
+                    align_x=0.0,
+                    grow_x=False,
                 ),
                 rio.Separator(),
                 *preview_rows,
-                spacing=0.35,
+                spacing=0.35 if is_mobile else 0.45,
                 margin=0.6 if is_mobile else 0.8,
                 grow_x=True,
             ),
@@ -522,6 +574,32 @@ class ExcelView(rio.Component):
             grow_x=True,
         )
 
+        spec_rows: list[rio.Component] = []
+        for label_text, color_hex, desc_text in [
+            ("Stock Columns:", "#60A5FA", "Stock Name, Symbol, Ticker, Company, Script"),
+            ("Date Columns:", "#34D399", "Reference Date, Anchor Date, Research Date, LD, Date"),
+            ("Date Formats:", "#FBBF24", "10-Jan-2014, 2014-01-10, 10/01/2014, 10.01.2014"),
+        ]:
+            if is_mobile:
+                spec_rows.append(
+                    rio.Column(
+                        rio.Text(label_text, font_weight="bold", font_size=0.8, fill=rio.Color.from_hex(color_hex)),
+                        rio.Text(desc_text, font_size=0.75, fill=COLOR_TEXT_MUTED),
+                        spacing=0.04,
+                        grow_x=True,
+                    )
+                )
+            else:
+                spec_rows.append(
+                    rio.Row(
+                        rio.Text(label_text, font_weight="bold", font_size=0.82, fill=rio.Color.from_hex(color_hex), min_width=8.0),
+                        rio.Text(desc_text, font_size=0.8, fill=COLOR_TEXT_MUTED),
+                        spacing=0.3,
+                        align_y=0.5,
+                        grow_x=True,
+                    )
+                )
+
         spec_card = rio.Card(
             rio.Column(
                 rio.Row(
@@ -539,24 +617,7 @@ class ExcelView(rio.Component):
                 ),
                 rio.Separator(),
                 rio.Column(
-                    rio.Row(
-                        rio.Text("Stock Columns:", font_weight="bold", font_size=0.82, fill=rio.Color.from_hex("#60A5FA"), min_width=9.0),
-                        rio.Text("Stock Name, Symbol, Ticker, Company, Script", font_size=0.8, fill=COLOR_TEXT_MUTED),
-                        spacing=0.3,
-                        align_y=0.5,
-                    ),
-                    rio.Row(
-                        rio.Text("Date Columns:", font_weight="bold", font_size=0.82, fill=rio.Color.from_hex("#34D399"), min_width=9.0),
-                        rio.Text("Reference Date, Anchor Date, Research Date, LD, Date", font_size=0.8, fill=COLOR_TEXT_MUTED),
-                        spacing=0.3,
-                        align_y=0.5,
-                    ),
-                    rio.Row(
-                        rio.Text("Date Formats:", font_weight="bold", font_size=0.82, fill=rio.Color.from_hex("#FBBF24"), min_width=9.0),
-                        rio.Text("10-Jan-2014, 2014-01-10, 10/01/2014, 10.01.2014", font_size=0.8, fill=COLOR_TEXT_MUTED),
-                        spacing=0.3,
-                        align_y=0.5,
-                    ),
+                    *spec_rows,
                     spacing=0.3,
                     grow_x=True,
                 ),
