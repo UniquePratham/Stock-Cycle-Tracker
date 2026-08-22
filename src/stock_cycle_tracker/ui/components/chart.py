@@ -1,4 +1,4 @@
-"""Plotly interactive chart generator supporting Screener-style durations, 50/200 DMA, Volume, and Cycle Anchors."""
+"""Plotly interactive chart generator supporting multi-year timelines (1M to Max), 50/200 DMA, Volume, and Cycle Anchors."""
 
 from __future__ import annotations
 

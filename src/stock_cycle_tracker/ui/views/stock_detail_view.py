@@ -396,7 +396,7 @@ class StockDetailView(rio.Component):
                 grow_x=True,
             )
 
-        # Screener-style Timeframe & Indicator Controls Toolbar
+        # Multi-Timeframe & Technical Indicator Controls Toolbar
         timeframe_buttons = []
         for tf in ["1M", "6M", "1Yr", "3Yr", "5Yr", "10Yr", "Max"]:
             is_active_tf = self.selected_timeframe == tf

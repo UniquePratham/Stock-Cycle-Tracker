@@ -177,7 +177,7 @@ class HomeView(rio.Component):
         )
 
         hero_subhead = rio.Text(
-            "Automated annual recurrence mapping, +1 day exchange holiday adjustments, and multi-year screener analytics — stored 100% privately on your computer.",
+            "Automated annual recurrence mapping, +1 day exchange holiday adjustments, and multi-year technical analytics — stored 100% privately on your computer.",
             font_size=0.78 if is_mobile else 0.86,
             fill=COLOR_TEXT_MUTED,
             align_x=0.5,
@@ -329,7 +329,7 @@ class HomeView(rio.Component):
         p2 = self._build_feature_card(
             icon="material/candlestick-chart",
             icon_color="#8B5CF6",
-            title="Screener-Grade Charts",
+            title="Multi-Timeframe Charts",
             subtitle="1M to Max timelines with 50 & 200 DMA",
         )
         p3 = self._build_feature_card(
