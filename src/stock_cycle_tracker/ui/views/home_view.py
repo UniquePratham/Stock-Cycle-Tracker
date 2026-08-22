@@ -1,4 +1,4 @@
-"""Beautiful, space-optimized Institutional Homepage with live cycle preview, hero metrics, and modal-based auth."""
+"""Stunning, unified Institutional Homepage with hero showcase, interactive cycle preview, and zero overflow."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from stock_cycle_tracker.ui.theme import (
 
 
 class HomeView(rio.Component):
-    """Institutional landing page with live cycle preview and balanced viewport utilization."""
+    """Unified institutional showcase homepage with live cycle preview."""
 
     on_open_signin: Callable[[], None]
     on_open_signup: Callable[[], None]
@@ -39,9 +39,14 @@ class HomeView(rio.Component):
 
         return rio.Card(
             rio.Row(
-                # Stock & Symbol
+                # Asset / Symbol
                 rio.Row(
-                    rio.Icon("material/trending-up" if is_positive else "material/trending-down", fill=color_fill, min_width=1.1, min_height=1.1),
+                    rio.Icon(
+                        "material/trending-up" if is_positive else "material/trending-down",
+                        fill=color_fill,
+                        min_width=1.1,
+                        min_height=1.1,
+                    ),
                     rio.Column(
                         rio.Text(symbol, font_weight="bold", font_size=0.82),
                         rio.Text(name, font_size=0.68, fill=COLOR_TEXT_MUTED),
@@ -57,7 +62,7 @@ class HomeView(rio.Component):
                     rio.Text(ref_date, font_size=0.76, font_weight="bold"),
                     rio.Text("Reference Date", font_size=0.62, fill=COLOR_TEXT_MUTED),
                     spacing=0.01,
-                    min_width=4.2,
+                    min_width=4.0,
                     align_y=0.5,
                 ),
                 rio.Spacer(),
@@ -79,7 +84,7 @@ class HomeView(rio.Component):
                     align_y=0.5,
                 ),
                 rio.Spacer(),
-                # Upside / Discount Badge
+                # Upside Badge
                 rio.Card(
                     rio.Text(
                         diff_str,
@@ -87,13 +92,13 @@ class HomeView(rio.Component):
                         font_weight="bold",
                         fill=color_fill,
                         margin_x=0.35,
-                        margin_y=0.1,
+                        margin_y=0.08,
                     ),
                     corner_radius=0.25,
                     color="hud",
                     align_y=0.5,
                 ),
-                # Classification Bucket
+                # Bucket Name
                 rio.Card(
                     rio.Text(
                         bucket_name,
@@ -101,15 +106,15 @@ class HomeView(rio.Component):
                         font_weight="bold",
                         fill=color_fill,
                         margin_x=0.35,
-                        margin_y=0.1,
+                        margin_y=0.08,
                     ),
                     corner_radius=0.25,
                     color="neutral",
                     align_y=0.5,
                 ),
-                spacing=0.25,
+                spacing=0.2,
                 margin_x=0.4,
-                margin_y=0.2,
+                margin_y=0.18,
                 align_y=0.5,
                 grow_x=True,
             ),
@@ -118,36 +123,10 @@ class HomeView(rio.Component):
             grow_x=True,
         )
 
-    def _build_feature_card(
-        self,
-        icon: str,
-        icon_color: str,
-        title: str,
-        subtitle: str,
-    ) -> rio.Component:
-        return rio.Card(
-            rio.Row(
-                rio.Icon(icon, fill=rio.Color.from_hex(icon_color), min_width=1.3, min_height=1.3),
-                rio.Column(
-                    rio.Text(title, font_size=0.82, font_weight="bold"),
-                    rio.Text(subtitle, font_size=0.7, fill=COLOR_TEXT_MUTED),
-                    spacing=0.02,
-                    grow_x=True,
-                ),
-                spacing=0.25,
-                margin=0.35,
-                align_y=0.5,
-                grow_x=True,
-            ),
-            corner_radius=0.35,
-            color="hud",
-            grow_x=True,
-        )
-
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
 
-        # Hero Badge
+        # Hero Header
         hero_badge = rio.Card(
             rio.Row(
                 rio.Icon("material/bolt", fill=rio.Color.from_hex("#3B82F6"), min_width=0.85, min_height=0.85),
@@ -168,77 +147,47 @@ class HomeView(rio.Component):
             align_x=0.5,
         )
 
-        # Centered Hero Header
         hero_title = rio.Text(
-            "Track Recurring Stock Cycles.\nBenchmark Reference Highs.",
-            font_size=1.6 if is_mobile else 2.1,
+            "Systematic Stock Cycle Intelligence\nBenchmark Reference Highs with Precision",
+            font_size=1.5 if is_mobile else 2.1,
             font_weight="bold",
             align_x=0.5,
         )
 
         hero_subhead = rio.Text(
-            "Automated annual recurrence mapping, +1 day exchange holiday adjustments, and multi-year technical analytics — stored 100% privately on your computer.",
-            font_size=0.78 if is_mobile else 0.86,
+            "Automated annual recurrence mapping, +1 day exchange holiday resolution, and multi-year technical analytics — 100% private on your computer.",
+            font_size=0.76 if is_mobile else 0.86,
             fill=COLOR_TEXT_MUTED,
             align_x=0.5,
         )
 
-        # Action Buttons
         hero_actions = rio.Row(
             rio.Button(
-                "Create Free Account",
+                "Get Started Free",
                 icon="material/person-add",
                 shape="rounded",
                 style="major",
                 color="primary",
-                min_height=2.1,
-                min_width=9.5,
+                min_height=2.2,
+                min_width=10.0,
                 on_press=self.on_open_signup,
             ),
             rio.Button(
-                "Explore Instant Demo",
+                "Launch Instant Demo",
                 icon="material/bolt",
                 shape="rounded",
                 style="minor",
                 color="secondary",
-                min_height=2.1,
-                min_width=9.5,
+                min_height=2.2,
+                min_width=10.0,
                 on_press=self.on_quick_demo,
             ),
-            rio.Button(
-                "Sign In",
-                icon="material/login",
-                shape="rounded",
-                style="plain-text",
-                color="neutral",
-                min_height=2.1,
-                min_width=7.5,
-                on_press=self.on_open_signin,
-            ),
-            spacing=0.3,
+            spacing=0.35,
             align_x=0.5,
             align_y=0.5,
         )
 
-        hero_card = rio.Card(
-            rio.Column(
-                hero_badge,
-                hero_title,
-                hero_subhead,
-                hero_actions,
-                spacing=0.3,
-                margin=0.5 if is_mobile else 0.7,
-                align_x=0.5,
-                grow_x=True,
-            ),
-            corner_radius=0.5,
-            color="neutral",
-            margin_x=0.4 if is_mobile else 0.8,
-            margin_top=0.2,
-            grow_x=True,
-        )
-
-        # Live Interactive Preview Table Teaser (Fills viewport with real institutional stock cycle data)
+        # 4 Mock Cycle Rows
         row1 = self._build_preview_row(
             symbol="RELIANCE",
             name="Reliance Industries Ltd",
@@ -272,15 +221,60 @@ class HomeView(rio.Component):
             bucket_name="5% to 10% Upside",
             is_positive=True,
         )
+        row4 = self._build_preview_row(
+            symbol="TATAMOTORS",
+            name="Tata Motors Ltd",
+            ref_date="15-Apr-2023",
+            target_date="15-Apr-2027",
+            cmp_str="₹980.40",
+            ref_high_str="₹820.00",
+            diff_str="+19.56%",
+            bucket_name="15% to 20% Upside",
+            is_positive=True,
+        )
 
-        preview_card = rio.Card(
+        # Bottom Integrated Pillars
+        p1 = rio.Row(
+            rio.Icon("material/history-toggle-off", fill=rio.Color.from_hex("#3B82F6"), min_width=1.1, min_height=1.1),
+            rio.Text("Annual Recurrence & Holiday Settlement", font_size=0.74, font_weight="bold"),
+            spacing=0.2,
+            align_y=0.5,
+        )
+        p2 = rio.Row(
+            rio.Icon("material/candlestick-chart", fill=rio.Color.from_hex("#8B5CF6"), min_width=1.1, min_height=1.1),
+            rio.Text("Multi-Timeframe Charts (50/200 DMA)", font_size=0.74, font_weight="bold"),
+            spacing=0.2,
+            align_y=0.5,
+        )
+        p3 = rio.Row(
+            rio.Icon("material/security", fill=rio.Color.from_hex("#10B981"), min_width=1.1, min_height=1.1),
+            rio.Text("100% Offline SQLite Privacy", font_size=0.74, font_weight="bold"),
+            spacing=0.2,
+            align_y=0.5,
+        )
+
+        pillars_bar = rio.Row(
+            p1,
+            rio.Spacer(),
+            p2,
+            rio.Spacer(),
+            p3,
+            spacing=0.3,
+            margin_x=0.5,
+            margin_y=0.15,
+            align_y=0.5,
+            grow_x=True,
+        )
+
+        # Unified Dashboard Showcase Container
+        preview_container = rio.Card(
             rio.Column(
                 rio.Row(
                     rio.Row(
                         rio.Icon("material/show-chart", fill=rio.Color.from_hex("#3B82F6"), min_width=1.1, min_height=1.1),
-                        rio.Text("Live Cycle Engine Preview", font_size=0.84, font_weight="bold"),
+                        rio.Text("Live Cycle Intelligence Engine", font_size=0.86, font_weight="bold"),
                         rio.Card(
-                            rio.Text("REAL-TIME RECURRENCE", font_size=0.62, font_weight="bold", fill=rio.Color.from_hex("#10B981"), margin_x=0.25, margin_y=0.06),
+                            rio.Text("● ACTIVE RECURRENCE", font_size=0.62, font_weight="bold", fill=rio.Color.from_hex("#10B981"), margin_x=0.25, margin_y=0.06),
                             corner_radius=0.2,
                             color="hud",
                         ),
@@ -289,12 +283,12 @@ class HomeView(rio.Component):
                     ),
                     rio.Spacer(),
                     rio.Button(
-                        "Launch Full Dashboard",
+                        "Launch Full Workspace",
                         icon="material/arrow-forward",
                         shape="rounded",
                         style="minor",
                         color="primary",
-                        min_height=1.7,
+                        min_height=1.8,
                         on_press=self.on_quick_demo,
                     ),
                     spacing=0.25,
@@ -305,60 +299,43 @@ class HomeView(rio.Component):
                     row1,
                     row2,
                     row3,
-                    spacing=0.18,
+                    row4,
+                    spacing=0.15,
                     grow_x=True,
                 ),
-                spacing=0.3,
+                rio.Separator(),
+                pillars_bar,
+                spacing=0.25,
                 margin=0.5 if is_mobile else 0.65,
                 grow_x=True,
             ),
             corner_radius=0.5,
             color="hud",
             margin_x=0.4 if is_mobile else 0.8,
-            margin_top=0.2,
-            grow_x=True,
-        )
-
-        # 3 Bottom Pillars
-        p1 = self._build_feature_card(
-            icon="material/history-toggle-off",
-            icon_color="#3B82F6",
-            title="Annual Cycle Recurrence",
-            subtitle="+1 Day holiday adjustment for NSE/BSE",
-        )
-        p2 = self._build_feature_card(
-            icon="material/candlestick-chart",
-            icon_color="#8B5CF6",
-            title="Multi-Timeframe Charts",
-            subtitle="1M to Max timelines with 50 & 200 DMA",
-        )
-        p3 = self._build_feature_card(
-            icon="material/security",
-            icon_color="#10B981",
-            title="100% Local Privacy",
-            subtitle="SQLite database stored on your computer",
-        )
-
-        pillars_row: rio.Component
-        if is_mobile:
-            pillars_row = rio.Column(p1, p2, p3, spacing=0.2, grow_x=True)
-        else:
-            pillars_row = rio.Row(p1, p2, p3, spacing=0.3, grow_x=True)
-
-        pillars_container = rio.Card(
-            pillars_row,
-            corner_radius=0.4,
-            color="neutral",
-            margin_x=0.4 if is_mobile else 0.8,
-            margin_top=0.2,
+            margin_top=0.25,
             margin_bottom=0.3,
             grow_x=True,
         )
 
         return rio.Column(
-            hero_card,
-            preview_card,
-            pillars_container,
+            rio.Card(
+                rio.Column(
+                    hero_badge,
+                    hero_title,
+                    hero_subhead,
+                    hero_actions,
+                    spacing=0.3,
+                    margin=0.5 if is_mobile else 0.7,
+                    align_x=0.5,
+                    grow_x=True,
+                ),
+                corner_radius=0.5,
+                color="neutral",
+                margin_x=0.4 if is_mobile else 0.8,
+                margin_top=0.2,
+                grow_x=True,
+            ),
+            preview_container,
             spacing=0.15,
             grow_x=True,
             align_y=0.0,

@@ -376,29 +376,6 @@ class RootComponent(rio.Component):
             align_y=0.0,
         )
 
-        # Legal & Local Computer Storage Global Disclaimer
-        disclaimer_banner = rio.Card(
-            rio.Row(
-                rio.Icon("material/security", fill=rio.Color.from_hex("#10B981"), min_width=1.0, min_height=1.0),
-                rio.Text(
-                    "Data Privacy Notice: All account details, stocks, and research cycles are stored on your local computer database (SQLite). Calculations are for research & cycle tracking purposes.",
-                    font_size=0.68,
-                    fill=COLOR_TEXT_MUTED,
-                    grow_x=True,
-                ),
-                spacing=0.3,
-                margin_x=0.6,
-                margin_y=0.15,
-                align_y=0.5,
-                grow_x=True,
-            ),
-            corner_radius=0.25,
-            color="hud",
-            margin_x=0.4 if is_mobile else 0.8,
-            margin_bottom=0.2,
-            grow_x=True,
-        )
-
         # Dynamic View Selection with Auth Gate
         view_content: rio.Component
         if self.is_auth_modal_open:
@@ -435,7 +412,6 @@ class RootComponent(rio.Component):
 
         return rio.Column(
             nav_header,
-            disclaimer_banner,
             view_content,
             spacing=0.15,
             grow_x=True,
