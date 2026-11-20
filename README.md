@@ -202,3 +202,14 @@ Run the full pytest suite:
 pytest
 ```
 Expected output: **29 passed in ~1.5s (100% pass rate)**.
+
+## Running
+
+**Python web UI**
+
+```bash
+pip install -r requirements.txt
+python run_app.py
+```
+
+Opens on http://127.0.0.1:8000 with demo data seeded on first run.
