@@ -1,0 +1,35 @@
+Fix the login and signup UI
+
+The auth modal had a real security bug and several layout problems.
+
+Security
+- The demo button hardcoded investor / investor123, so a known password existed
+  in the source and the account could be signed into from the form. It now uses
+  the same gated get_or_create_demo_user() as the landing page: off unless
+  ENABLE_DEMO_LOGIN=1, random password that is never stored.
+
+Layout
+- The dialog stretched to the full viewport width because both the Card and its
+  wrapper had grow_x=True. It is now a fixed-width dialog, centred.
+- The avatar picker was a FlowContainer that wrapped into a ragged 2-column
+  block with uneven heights and clipped labels. It is now a 4x2 Grid with a
+  fixed cell height, so all eight names are visible.
+- The "minor" button style clipped the avatar label; plain-text with an explicit
+  min_height does not.
+
+Copy
+- "Investor Account & Access" -> "Sign in"
+- "Sign In to Portfolio" -> "Sign in"
+- "Explore with Quick Demo Account" -> "Try the demo account"
+- "Select Trader Persona Avatar" -> "Avatar"
+- "Complete Registration & Start Tracking" -> "Create account"
+- "Local Computer Storage & Privacy Guarantee" -> "Stored on this machine"
+- "Currently Tracked Portfolios & Cycles" -> "Tracked stocks and cycles"
+- "Upload bulk research portfolios..." -> "Upload a spreadsheet..."
+- "Portfolios: N" -> "Stocks: N"
+
+Verified in a browser: sign-in and sign-up tabs both render, all eight avatar
+labels visible, dialog centred at a fixed width, dashboard and mobile clean with
+no overflow, no console errors. 48 tests pass.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

@@ -149,7 +149,7 @@ class ExcelView(rio.Component):
                 font_weight="bold",
             ),
             rio.Text(
-                "Upload bulk research portfolios, ingest from Google Sheets, preview top rows, or download reports",
+                "Upload a spreadsheet, preview the rows, or download a report",
                 font_size=0.78 if is_mobile else 0.9,
                 fill=COLOR_TEXT_MUTED,
             ),
@@ -508,7 +508,7 @@ class ExcelView(rio.Component):
                 rio.FlowContainer(
                     rio.Card(
                         rio.Text(
-                            f"Portfolios: {unique_stocks_count}",
+                            f"Stocks: {unique_stocks_count}",
                             font_size=0.78 if is_mobile else 0.88,
                             font_weight="bold",
                             margin_x=0.45,

@@ -557,8 +557,10 @@ class RootComponent(rio.Component):
                     align_y=0.5,
                     margin_x=0.5 if is_mobile else 2.0,
                     margin_y=0.5,
-                    grow_x=True,
-                    grow_y=True,
+                    # The dialog sizes itself; growing here stretched it to the
+                    # full viewport width.
+                    grow_x=False,
+                    grow_y=False,
                 ),
                 grow_x=True,
                 grow_y=True,

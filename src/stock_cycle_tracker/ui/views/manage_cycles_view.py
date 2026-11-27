@@ -373,7 +373,7 @@ class ManageCyclesView(rio.Component):
         stock_cards: list[rio.Component] = []
         stock_cards.append(
             rio.Text(
-                "Currently Tracked Portfolios & Cycles",
+                "Tracked stocks and cycles",
                 font_size=1.1 if is_mobile else 1.35,
                 font_weight="bold",
                 margin_x=0.4 if is_mobile else 1.2,

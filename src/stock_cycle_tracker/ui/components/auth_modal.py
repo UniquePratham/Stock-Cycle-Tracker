@@ -91,18 +91,22 @@ class AuthModal(rio.Component):
             self.on_auth_success(user)
 
     def _handle_demo_login(self) -> None:
-        """Instant demo login creating or signing into local analyst account."""
+        """Signs in the shared demo account, only when demo mode is enabled.
+
+        The previous version hardcoded `investor` / `investor123`, which meant a
+        known password existed in the source and the account could be signed into
+        from the form. The demo account is now created with a random password
+        that is never stored, and this button is the only way in.
+        """
+        from stock_cycle_tracker.ui.app import demo_login_enabled
+
+        if not demo_login_enabled():
+            self.error_message = "Demo login is disabled on this deployment."
+            return
+
         self.error_message = None
         container = ServiceContainer.get()
-        user, _ = container.auth_service.signin("investor", "investor123")
-        if not user:
-            user, _ = container.auth_service.signup(
-                username="investor",
-                email="investor@local.dev",
-                password="investor123",
-                full_name="Chief Market Analyst",
-                avatar_id="cycle_master",
-            )
+        user = container.auth_service.get_or_create_demo_user()
         if user:
             self.on_auth_success(user)
 
@@ -138,7 +142,7 @@ class AuthModal(rio.Component):
             rio.Row(
                 header_icon,
                 rio.Column(
-                    rio.Text("Investor Account & Access", font_weight="bold", font_size=1.12),
+                    rio.Text("Sign in", font_weight="bold", font_size=1.12),
                     rio.Text("Track your own stock cycles", font_size=0.72, fill=COLOR_TEXT_MUTED),
                     spacing=0.02,
                 ),
@@ -247,7 +251,7 @@ class AuthModal(rio.Component):
                     ),
                 ),
                 rio.Button(
-                    "Sign In to Portfolio",
+                    "Sign in",
                     icon="material/arrow-forward",
                     shape="rounded",
                     style="major",
@@ -271,7 +275,7 @@ class AuthModal(rio.Component):
                     grow_x=True,
                 ),
                 rio.Button(
-                    "Explore with Quick Demo Account",
+                    "Try the demo account",
                     icon="material/bolt",
                     shape="rounded",
                     style="minor",
@@ -292,31 +296,43 @@ class AuthModal(rio.Component):
                 avatar_cards.append(
                     rio.Button(
                         content=rio.Column(
-                            rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.2, min_height=1.2),
-                            rio.Text(av.name, font_size=0.7, font_weight="bold", align_x=0.5),
-                            rio.Text(av.role, font_size=0.6, fill=COLOR_TEXT_MUTED, align_x=0.5),
-                            spacing=0.02,
-                            margin=0.2,
+                            rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.0, min_height=1.0),
+                            rio.Text(
+                                av.name,
+                                font_size=0.6,
+                                font_weight="bold",
+                                align_x=0.5,
+                                align_y=0.5,
+                            ),
+                            spacing=0.08,
+                            margin_x=0.1,
+                            margin_y=0.2,
                             align_x=0.5,
                             align_y=0.5,
                         ),
                         shape="rounded",
-                        style="major" if is_sel else "minor",
+                        style="major" if is_sel else "plain-text",
                         color="primary" if is_sel else "neutral",
+                        min_height=3.6,
+                        grow_x=True,
                         on_press=lambda a=av_id: self._select_avatar(a),
                     )
                 )
 
+            # A fixed 4-column grid keeps the avatars even. A FlowContainer let
+            # them wrap into a ragged 2-column block with uneven heights.
+            avatar_grid = rio.Grid(
+                *[
+                    avatar_cards[i : i + 4]
+                    for i in range(0, len(avatar_cards), 4)
+                ],
+                column_spacing=0.2,
+                row_spacing=0.2,
+                grow_x=True,
+            )
             avatar_picker = rio.Column(
-                rio.Text("Select Trader Persona Avatar", font_size=0.75, font_weight="bold", fill=COLOR_TEXT_MUTED),
-                rio.FlowContainer(
-                    *avatar_cards,
-                    spacing=0.25,
-                    row_spacing=0.25,
-                    column_spacing=0.25,
-                    justify="justify",
-                    grow_x=True,
-                ),
+                rio.Text("Avatar", font_size=0.75, font_weight="bold", fill=COLOR_TEXT_MUTED),
+                avatar_grid,
                 spacing=0.15,
                 grow_x=True,
             )
@@ -386,7 +402,7 @@ class AuthModal(rio.Component):
                 ),
                 avatar_picker,
                 rio.Button(
-                    "Complete Registration & Start Tracking",
+                    "Create account",
                     icon="material/check",
                     shape="rounded",
                     style="major",
@@ -400,19 +416,19 @@ class AuthModal(rio.Component):
                 grow_x=True,
             )
 
-        # Local Storage & Legal Disclaimer Notice
+        # Storage notice
         disclaimer_card = rio.Card(
             rio.Row(
                 rio.Icon("material/shield", fill=rio.Color.from_hex("#10B981"), min_width=1.1, min_height=1.1),
                 rio.Column(
                     rio.Text(
-                        "Local Computer Storage & Privacy Guarantee",
+                        "Stored on this machine",
                         font_size=0.72,
                         font_weight="bold",
                         fill=rio.Color.from_hex("#10B981"),
                     ),
                     rio.Text(
-                        "Your credentials, stocks, and research cycles are stored securely on your local computer database (SQLite).",
+                        "Your account, stocks and cycles live in a local SQLite database.",
                         font_size=0.65,
                         fill=COLOR_TEXT_DIM,
                     ),
@@ -445,6 +461,9 @@ class AuthModal(rio.Component):
             modal_body,
             corner_radius=0.8,
             color="neutral",
-            min_width=24.0 if not is_mobile else 18.0,
-            grow_x=True,
+            # A fixed width keeps the dialog a dialog. `grow_x` made it stretch
+            # to the full viewport width on wide screens. The signup tab needs
+            # more room so the avatar labels are not clipped.
+            min_width=26.0 if not is_mobile else 17.0,
+            grow_x=False,
         )
