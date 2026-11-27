@@ -74,7 +74,10 @@ def main() -> int:
     print(f"============================================================")
 
     app = build_app(db_path=args.db)
-    app.run_in_browser(host=args.host, port=args.port)
+    # `run_as_web_server` serves the app and blocks. `run_in_browser` also tries
+    # to open a browser, which on a headless host (Render) fails and leaves the
+    # client reconnecting in a loop.
+    app.run_as_web_server(host=args.host, port=args.port)
     return 0
 
 

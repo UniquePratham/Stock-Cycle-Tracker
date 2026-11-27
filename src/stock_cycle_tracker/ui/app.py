@@ -592,12 +592,15 @@ class RootComponent(rio.Component):
         # A hidden 1px image whose src is the one-shot cookie URL. The browser
         # fetches it as a subresource, which applies the Set-Cookie header
         # without navigating away from the page.
+        #
+        # `rio.Image` treats its argument as an asset path and rejects a
+        # `/rio/cookies/...` URL, so the cookie is set with a plain HTML image
+        # via `rio.Html`.
         cookie_setter: rio.Component = rio.Spacer()
         if self._pending_cookie_url:
-            cookie_setter = rio.Image(
-                self._pending_cookie_url,
-                min_width=0.01,
-                min_height=0.01,
+            cookie_setter = rio.Html(
+                f'<img src="{self._pending_cookie_url}" alt="" '
+                'width="1" height="1" style="position:absolute;opacity:0;pointer-events:none" />'
             )
 
         if is_homepage:

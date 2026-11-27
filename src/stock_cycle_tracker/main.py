@@ -63,7 +63,7 @@ def main() -> int:
         host = getattr(args, "host", "127.0.0.1")
         port = getattr(args, "port", 8000)
         print(f"Starting Stock Cycle Tracker on http://{host}:{port}")
-        app.run_in_browser(host=host, port=port)
+        app.run_as_web_server(host=host, port=port)
         return 0
 
     elif cmd == "calculate":
