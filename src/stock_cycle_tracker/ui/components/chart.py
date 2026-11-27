@@ -11,6 +11,40 @@ import plotly.graph_objects as go
 from stock_cycle_tracker.domain.models import CycleAnalysis, NormalizedOHLC
 
 
+# Timeframe label -> number of calendar days to keep. "Max" keeps everything.
+TIMEFRAME_DAYS = {
+    "1M": 31,
+    "3M": 92,
+    "6M": 183,
+    "1Yr": 366,
+    "2Yr": 731,
+    "3Yr": 1096,
+    "5Yr": 1826,
+}
+
+
+def _slice_to_timeframe(df: pd.DataFrame, timeframe_label: str) -> pd.DataFrame:
+    """Trims the frame to the selected timeframe so the axis fits the period.
+
+    The moving averages were already computed on the full history, so slicing
+    here keeps them correct on the first visible bar.
+    """
+    if df.empty:
+        return df
+
+    days = TIMEFRAME_DAYS.get(timeframe_label)
+    if days is None:
+        return df
+
+    last_date = df["Date"].max()
+    cutoff = last_date - pd.Timedelta(days=days)
+    window = df[df["Date"] >= cutoff]
+
+    # Never return an empty window — fall back to the full frame if the data is
+    # older than the requested period.
+    return window if not window.empty else df
+
+
 def create_cycle_plotly_figure(
     symbol: str,
     ohlc_bars: List[NormalizedOHLC],
@@ -58,9 +92,15 @@ def create_cycle_plotly_figure(
     df.sort_values("Date", inplace=True)
     df.reset_index(drop=True, inplace=True)
 
-    # Calculate Moving Averages
+    # Moving averages are computed on the full history *before* the timeframe is
+    # sliced, so the 50/200 DMA are already correct on the first visible bar
+    # instead of ramping up from the left edge of the window.
     df["50_DMA"] = df["Close"].rolling(window=50, min_periods=1).mean()
     df["200_DMA"] = df["Close"].rolling(window=200, min_periods=1).mean()
+
+    # Fit the axis to the selected timeframe. The window is chosen from the
+    # timeframe label so the chart shows exactly the period the user asked for.
+    df = _slice_to_timeframe(df, timeframe_label)
 
     # 1. Volume Bar Series (Secondary Y-Axis at bottom 20% of chart)
     if show_volume and "Volume" in df.columns and df["Volume"].sum() > 0:
@@ -227,6 +267,29 @@ def create_cycle_plotly_figure(
     # Max volume for yaxis2 range
     max_vol = float(df["Volume"].max()) if not df.empty and "Volume" in df.columns else 1000.0
 
+    # Fit the price axis to the visible window (plus the reference lines), so a
+    # narrow timeframe is not squashed by a multi-year price range.
+    price_series = [df["Close"]]
+    if show_50_dma:
+        price_series.append(df["50_DMA"])
+    if show_200_dma:
+        price_series.append(df["200_DMA"])
+
+    visible = pd.concat(price_series)
+    y_min = float(visible.min())
+    y_max = float(visible.max())
+
+    # Include the cycle reference lines so their annotations stay on-canvas.
+    if show_cycle_anchors:
+        for c_analysis in (all_analyses if overlay_all and all_analyses else ([analysis] if analysis else [])):
+            for level in (c_analysis.reference_high, c_analysis.reference_low):
+                if level and level > 0:
+                    y_min = min(y_min, float(level))
+                    y_max = max(y_max, float(level))
+
+    pad = (y_max - y_min) * 0.08 or max(y_max * 0.02, 1.0)
+    y_range = [max(0.0, y_min - pad), y_max + pad]
+
     # Theme-aware colors
     if is_dark_mode:
         paper_bg = "#111827"
@@ -291,6 +354,7 @@ def create_cycle_plotly_figure(
             zeroline=True,
             zerolinecolor=zero_col,
             fixedrange=True,
+            range=y_range,
             color=axis_font_col,
             tickprefix="₹",
             tickformat=",.2f",

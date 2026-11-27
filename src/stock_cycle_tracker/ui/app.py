@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -9,6 +10,13 @@ import rio
 
 from stock_cycle_tracker.domain.user import User
 from stock_cycle_tracker.ui.components.auth_modal import AuthModal
+from stock_cycle_tracker.ui.session_auth import (
+    cookie_url_for,
+    create_session,
+    current_user,
+    destroy_session,
+    session_token,
+)
 from stock_cycle_tracker.ui.state import ServiceContainer
 from stock_cycle_tracker.ui.theme import (
     COLOR_BG_DARK,
@@ -31,6 +39,15 @@ ASSETS_DIR = Path(__file__).parent / "assets"
 FAVICON_PATH = ASSETS_DIR / "favicon.png"
 
 
+def demo_login_enabled() -> bool:
+    """True only when ENABLE_DEMO_LOGIN=1 is set.
+
+    Demo login is off by default so a production deployment never ships a
+    working back door.
+    """
+    return os.environ.get("ENABLE_DEMO_LOGIN", "").strip() == "1"
+
+
 class RootComponent(rio.Component):
     """Main application frame with responsive navigation bar, user authentication, avatar profiles, and local storage disclaimers."""
 
@@ -41,6 +58,15 @@ class RootComponent(rio.Component):
     current_user: Optional[User] = None
     is_auth_modal_open: bool = False
     auth_modal_initial_tab: str = "signin"
+
+    # Set by the URL page wrappers so a direct visit to /dashboard or
+    # /chart/RELIANCE lands on the right view.
+    initial_page: str = "home"
+    initial_stock: Optional[str] = None
+
+    # One-shot URL that sets the httponly session cookie. Rendered as a hidden
+    # image so the browser fetches it (applying Set-Cookie) without navigating.
+    _pending_cookie_url: str = ""
 
     def navigate(self, page_name: str, stock_symbol: Optional[str] = None) -> None:
         if self.current_user is None and page_name not in ("home",):
@@ -75,22 +101,39 @@ class RootComponent(rio.Component):
         self.current_user = user
         self.is_auth_modal_open = False
         self.active_page = "dashboard"
+        # Persist the login in an httponly cookie so it survives a reload and a
+        # new tab. The cookie holds an opaque token; the server keeps only its
+        # hash.
+        #
+        # The cookie is set by loading a one-shot URL. It must not be navigated
+        # to from inside build(), or the page reloads in a loop — so it is
+        # opened in a hidden way: the URL is fetched by the browser as a
+        # subresource, which still applies the Set-Cookie header.
+        token = create_session(user)
+        url = cookie_url_for(self.session, token)
+        if url:
+            self._pending_cookie_url = url
 
     def _handle_quick_demo(self) -> None:
+        """Signs in the shared demo account, only when demo mode is enabled.
+
+        Demo login is off unless ENABLE_DEMO_LOGIN=1 is set, so a production
+        deployment does not ship a working back door. There is no hardcoded
+        password: the demo account is created with a random one and signed in
+        directly, so nobody can log into it from the sign-in form.
+        """
+        if not demo_login_enabled():
+            return
+
         container = ServiceContainer.get()
-        user, _ = container.auth_service.signin("investor", "investor123")
-        if not user:
-            user, _ = container.auth_service.signup(
-                username="investor",
-                email="investor@local.dev",
-                password="investor123",
-                full_name="Chief Market Analyst",
-                avatar_id="cycle_master",
-            )
+        user = container.auth_service.get_or_create_demo_user()
         if user:
             self._on_auth_success(user)
 
     def _sign_out(self) -> None:
+        # Delete the server-side session so the cookie stops working, then clear
+        # the in-memory user.
+        destroy_session(session_token(self.session))
         self.current_user = None
         self.active_page = "home"
         self.selected_stock = None
@@ -110,6 +153,23 @@ class RootComponent(rio.Component):
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 60.0
+
+        # Restore the login from the httponly session cookie, so a reload or a
+        # new tab lands the user back where they were instead of on the landing
+        # page.
+        if self.current_user is None:
+            restored = current_user(self.session)
+            if restored is not None:
+                self.current_user = restored
+                if self.active_page == "home":
+                    self.active_page = "dashboard"
+
+        # Honour the page the URL asked for (set by the page wrappers).
+        if self.initial_page and self.initial_page != "home":
+            if self.current_user is not None:
+                self.active_page = self.initial_page
+                if self.initial_stock:
+                    self.selected_stock = self.initial_stock
 
         # Brand Icon component
         brand_icon_component: rio.Component
@@ -137,7 +197,7 @@ class RootComponent(rio.Component):
                     rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.3, min_height=1.3),
                     rio.Column(
                         rio.Text(self.current_user.display_name, font_weight="bold", font_size=0.82),
-                        rio.Text(f"{av.name} • Local DB", font_size=0.65, fill=rio.Color.from_hex("#10B981")),
+                        rio.Text(f"{av.name}", font_size=0.65, fill=rio.Color.from_hex("#10B981")),
                         spacing=0.01,
                     ),
                     rio.Button(
@@ -198,7 +258,7 @@ class RootComponent(rio.Component):
                                 font_size=0.92,
                             ),
                             rio.Text(
-                                "Cycle Intelligence",
+                                "Stock Cycle Tracker",
                                 font_size=0.64,
                                 fill=COLOR_TEXT_MUTED,
                             ),
@@ -237,7 +297,7 @@ class RootComponent(rio.Component):
                             rio.Icon(av.icon, fill=rio.Color.from_hex(av.color_hex), min_width=1.3, min_height=1.3),
                             rio.Column(
                                 rio.Text(self.current_user.display_name, font_weight="bold", font_size=0.82),
-                                rio.Text(f"{av.name} • Local SQLite DB", font_size=0.65, fill=rio.Color.from_hex("#10B981")),
+                                rio.Text(f"{av.name}", font_size=0.65, fill=rio.Color.from_hex("#10B981")),
                                 spacing=0.01,
                             ),
                             rio.Spacer(),
@@ -340,7 +400,7 @@ class RootComponent(rio.Component):
                                 font_size=1.1,
                             ),
                             rio.Text(
-                                "Institutional Cycle Intelligence",
+                                "Stock Cycle Tracker",
                                 font_size=0.72,
                                 fill=COLOR_TEXT_MUTED,
                             ),
@@ -385,7 +445,7 @@ class RootComponent(rio.Component):
                                 font_size=1.1,
                             ),
                             rio.Text(
-                                "Institutional Cycle Intelligence",
+                                "Stock Cycle Tracker",
                                 font_size=0.72,
                                 fill=COLOR_TEXT_MUTED,
                             ),
@@ -494,6 +554,17 @@ class RootComponent(rio.Component):
         # For the homepage, overlay navbar on top of the full-bleed background
         is_homepage = self.current_user is None or self.active_page == "home"
 
+        # A hidden 1px image whose src is the one-shot cookie URL. The browser
+        # fetches it as a subresource, which applies the Set-Cookie header
+        # without navigating away from the page.
+        cookie_setter: rio.Component = rio.Spacer()
+        if self._pending_cookie_url:
+            cookie_setter = rio.Image(
+                self._pending_cookie_url,
+                min_width=0.01,
+                min_height=0.01,
+            )
+
         if is_homepage:
             return rio.Stack(
                 view_content,
@@ -503,6 +574,7 @@ class RootComponent(rio.Component):
                     grow_x=True,
                     grow_y=True,
                 ),
+                cookie_setter,
                 grow_x=True,
                 grow_y=True,
             )
@@ -510,15 +582,20 @@ class RootComponent(rio.Component):
         return rio.Column(
             nav_header,
             view_content,
+            cookie_setter,
             spacing=0.15,
             grow_x=True,
             grow_y=True,
         )
 
-
 def build_app(db_path: Optional[str] = None) -> rio.App:
     """Factory creating the configured Rio Application with custom dark theme and stock logo favicon."""
     ServiceContainer.get(db_path=db_path)
+
+    # The `pages` package holds one module per URL. Passing the folder
+    # explicitly means the routes are found regardless of which module
+    # constructs the app.
+    pages_dir = Path(__file__).parent.parent / "pages"
 
     return rio.App(
         build=RootComponent,
@@ -526,4 +603,5 @@ def build_app(db_path: Optional[str] = None) -> rio.App:
         theme=create_dark_theme(),
         assets_dir=ASSETS_DIR,
         icon=FAVICON_PATH if FAVICON_PATH.exists() else None,
+        pages=pages_dir,
     )

@@ -9,6 +9,7 @@ from typing import Callable, Optional
 import rio
 
 from stock_cycle_tracker.ui.components.stock_autocomplete import StockAutocompleteInput
+from stock_cycle_tracker.ui.session_auth import current_user
 from stock_cycle_tracker.ui.state import ServiceContainer
 from stock_cycle_tracker.ui.theme import (
     COLOR_BORDER,
@@ -183,17 +184,24 @@ class ManageCyclesView(rio.Component):
 
         self._cancel_delete()
 
+        # Scope the delete to the signed-in user, so a guessed id cannot remove
+        # another account's data.
+        user = current_user(self.session)
+        user_id = user.id if user else None
+
         if del_type == "cycle" and del_id is not None:
-            container.cycle_service.delete_cycle(del_id)
+            container.cycle_service.delete_cycle(del_id, user_id=user_id)
             await self._show_toast(f"Deleted Successfully: {deleted_name} removed.", is_error=False)
         elif del_type == "stock" and del_id is not None:
-            container.cycle_service.delete_stock(del_id)
+            container.cycle_service.delete_stock(del_id, user_id=user_id)
             await self._show_toast(f"Deleted Successfully: {deleted_name} and all associated cycles removed.", is_error=False)
 
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 55.0
         container = ServiceContainer.get()
-        all_cycles = container.repository.list_all_cycles()
+        # Only this user's cycles are listed.
+        user = current_user(self.session)
+        all_cycles = container.repository.list_all_cycles(user_id=user.id if user else None)
 
         # Group cycles by stock
         stocks_map: dict[int, tuple[any, list]] = {}

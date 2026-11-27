@@ -29,7 +29,7 @@ class HomeView(rio.Component):
         # ── Hero Badge ──
         hero_badge = rio.Card(
             rio.Text(
-                "⚡  CYCLE INTELLIGENCE  •  LOCAL FIRST" if is_mobile else "⚡  INSTITUTIONAL CYCLE INTELLIGENCE  •  LOCAL FIRST",
+                "ANNUAL CYCLE ANALYSIS" if is_mobile else "ANNUAL CYCLE ANALYSIS  ·  LOCAL FIRST",
                 font_size=0.6 if is_mobile else 0.7,
                 font_weight="bold",
                 fill=rio.Color.from_hex("#3B82F6"),
@@ -45,7 +45,7 @@ class HomeView(rio.Component):
         title_size = 1.4 if is_small_mobile else (1.75 if is_mobile else 2.3)
         hero_title = rio.Column(
             rio.Text(
-                "Master Recurring",
+                "Track Recurring",
                 font_size=title_size,
                 font_weight="bold",
                 align_x=0.5,
@@ -64,19 +64,19 @@ class HomeView(rio.Component):
         sub_size = 0.72 if is_mobile else 0.88
         hero_sub = rio.Column(
             rio.Text(
-                "Benchmark reference highs with precision.",
+                "Compare today's price against the high of a",
                 font_size=sub_size,
                 fill=COLOR_TEXT_MUTED,
                 align_x=0.5,
             ),
             rio.Text(
-                "Automated recurrence mapping, holiday settlement,",
+                "historical reference date, resolved to the next",
                 font_size=sub_size,
                 fill=COLOR_TEXT_MUTED,
                 align_x=0.5,
             ),
             rio.Text(
-                "and multi-year analytics — 100% private.",
+                "trading day. Data stays on your machine.",
                 font_size=sub_size,
                 fill=COLOR_TEXT_MUTED,
                 align_x=0.5,
@@ -142,19 +142,19 @@ class HomeView(rio.Component):
         # ── Feature Pills ──
         pill_1 = rio.Row(
             rio.Icon("material/history-toggle-off", fill=rio.Color.from_hex("#3B82F6"), min_width=0.9 if is_mobile else 1.0, min_height=0.9 if is_mobile else 1.0),
-            rio.Text("Annual Recurrence", font_size=0.72 if is_mobile else 0.78, font_weight="bold"),
+            rio.Text("Annual recurrence", font_size=0.72 if is_mobile else 0.78, font_weight="bold"),
             spacing=0.15,
             align_y=0.5,
         )
         pill_2 = rio.Row(
             rio.Icon("material/candlestick-chart", fill=rio.Color.from_hex("#8B5CF6"), min_width=0.9 if is_mobile else 1.0, min_height=0.9 if is_mobile else 1.0),
-            rio.Text("Multi-Timeframe Charts", font_size=0.72 if is_mobile else 0.78, font_weight="bold"),
+            rio.Text("Multi-timeframe charts", font_size=0.72 if is_mobile else 0.78, font_weight="bold"),
             spacing=0.15,
             align_y=0.5,
         )
         pill_3 = rio.Row(
             rio.Icon("material/security", fill=rio.Color.from_hex("#10B981"), min_width=0.9 if is_mobile else 1.0, min_height=0.9 if is_mobile else 1.0),
-            rio.Text("100% Offline & Private", font_size=0.72 if is_mobile else 0.78, font_weight="bold"),
+            rio.Text("Stored locally", font_size=0.72 if is_mobile else 0.78, font_weight="bold"),
             spacing=0.15,
             align_y=0.5,
         )
@@ -182,7 +182,7 @@ class HomeView(rio.Component):
 
         # ── Privacy Footer ──
         privacy_line = rio.Text(
-            "🔒  100% Offline SQLite Privacy • Zero Telemetry" if is_mobile else "🔒  All data stored locally in SQLite  •  Zero cloud telemetry  •  Your data never leaves your machine",
+            "Data stored locally in SQLite" if is_mobile else "All data stored locally in SQLite  ·  No telemetry  ·  Nothing leaves your machine",
             font_size=0.62 if is_mobile else 0.68,
             fill=COLOR_TEXT_MUTED,
             align_x=0.5,

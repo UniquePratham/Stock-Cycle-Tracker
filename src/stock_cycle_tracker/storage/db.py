@@ -89,9 +89,18 @@ class DatabaseManager:
         calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_cycles_stock_id ON cycles(stock_id);
     CREATE INDEX IF NOT EXISTS idx_market_data ON market_data_cache(stock_symbol, trading_date);
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+    CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash);
     """
 
     def __init__(self, db_path: Optional[str | Path] = None) -> None:

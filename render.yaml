@@ -10,3 +10,7 @@ services:
         value: "3.12"
       - key: PORT
         value: "10000"
+      # Shows the "Launch Demo" button on the live site. Remove this line to
+      # hide it — demo login is off unless this is exactly "1".
+      - key: ENABLE_DEMO_LOGIN
+        value: "1"

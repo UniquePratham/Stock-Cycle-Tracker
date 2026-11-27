@@ -129,3 +129,31 @@ class AuthService:
     def get_user_by_id(self, user_id: int) -> Optional[User]:
         """Retrieves user profile by ID."""
         return self.repo.get_user_by_id(user_id)
+
+    # Username reserved for the demo account, so a real user cannot claim it and
+    # then be signed in by the demo button.
+    DEMO_USERNAME = "demo"
+    DEMO_EMAIL = "demo@stock-cycle-tracker.local"
+
+    def get_or_create_demo_user(self) -> Optional[User]:
+        """Returns the shared demo account, creating it on first use.
+
+        The account is created with a random password that is never returned or
+        stored anywhere, so it cannot be signed into from the sign-in form — the
+        only way in is the demo button, which is itself gated behind
+        ENABLE_DEMO_LOGIN=1.
+        """
+        existing = self.repo.get_user_by_username(self.DEMO_USERNAME)
+        if existing:
+            return existing
+
+        # A random password nobody knows. `signup` hashes it; the plaintext is
+        # discarded immediately.
+        user, _ = self.signup(
+            username=self.DEMO_USERNAME,
+            email=self.DEMO_EMAIL,
+            password=secrets.token_urlsafe(32),
+            full_name="Demo Analyst",
+            avatar_id="cycle_master",
+        )
+        return user

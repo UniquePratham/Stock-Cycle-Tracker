@@ -58,11 +58,3 @@ resources/
 
 # ─── Logs ─────────────────────────────────────────────────
 *.log
-
-# Added by repo hygiene pass
-.env
-.env.local
-node_modules/
-
-# Vercel local state (contains project tokens)
-.vercel/

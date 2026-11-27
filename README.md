@@ -201,15 +201,60 @@ Run the full pytest suite:
 ```bash
 pytest
 ```
-Expected output: **29 passed in ~1.5s (100% pass rate)**.
+Expected output: **48 passed in ~4s (100% pass rate)**.
 
-## Running
+---
 
-**Python web UI**
+## 8. URLs and Accounts
+
+Every page has a real URL, so a link can be bookmarked or opened in a new tab.
+
+| URL | Page | Sign-in required |
+| :--- | :--- | :--- |
+| `/` | Landing page | No |
+| `/dashboard` | Cycle analysis dashboard | Yes |
+| `/cycles` | Manage tracked stocks and cycles | Yes |
+| `/excel` | Bulk import and export | Yes |
+| `/alerts` | Rule-based alerts | Yes |
+| `/chart/{symbol}` | One stock's chart, e.g. `/chart/RELIANCE` | Yes |
+
+Visiting a protected URL while signed out redirects to `/` before the page is
+built, so no protected content is ever rendered.
+
+### Sessions
+
+The login survives a reload and a new tab. The browser holds an **httponly**
+cookie that page scripts cannot read; the server stores only a SHA-256 hash of
+the token, so a leaked database row cannot be replayed as a login. Signing out
+deletes the session row, which invalidates the cookie immediately.
+
+### Per-user data
+
+Stocks, cycles and alerts are scoped to their owner. Deletes check ownership in
+the same SQL statement, so a guessed id cannot remove another account's data.
+
+### Demo login
+
+The "Launch Demo" button is **off by default**. It appears only when
+`ENABLE_DEMO_LOGIN=1` is set:
 
 ```bash
-pip install -r requirements.txt
-python run_app.py
+ENABLE_DEMO_LOGIN=1 python run_app.py
 ```
 
-Opens on http://127.0.0.1:8000 with demo data seeded on first run.
+The demo account has no known password — it is created with a random one that is
+never stored, so the only way in is the button itself. The username `demo` is
+reserved.
+
+### Render
+
+`render.yaml` sets `ENABLE_DEMO_LOGIN=1` so the button shows on the live site.
+Remove that line to hide it. The service runs:
+
+```bash
+pip install -e .
+python run_app.py --port 10000 --host 0.0.0.0
+```
+
+`PORT` and `HOST` are read from the environment, so the same command works on
+Render, Railway or a local shell.

@@ -262,6 +262,19 @@ class StockDetailView(rio.Component):
             grow_x=True,
         )
 
+        # "Open in new tab" — a real URL, so the browser can open the chart in a
+        # second tab instead of losing the current view.
+        open_in_new_tab = rio.Link(
+            rio.Row(
+                rio.Icon("material/open-in-new", min_width=1.0, min_height=1.0),
+                rio.Text("Open in new tab", font_size=0.75),
+                spacing=0.15,
+                align_y=0.5,
+            ),
+            f"/chart/{stock.symbol}",
+            open_in_new_tab=True,
+        )
+
         # Multi-Cycle Selection Switcher (when multiple cycles exist)
         cycle_switcher_card: Optional[rio.Component] = None
         if len(analyses) > 1:
@@ -645,6 +658,13 @@ class StockDetailView(rio.Component):
 
         return rio.Column(
             header_card,
+            rio.Row(
+                open_in_new_tab,
+                rio.Spacer(),
+                margin_x=0.4 if is_mobile else 0.8,
+                align_y=0.5,
+                grow_x=True,
+            ),
             cycle_switcher_card if cycle_switcher_card else rio.Spacer(),
             stats_layout,
             chart_card,

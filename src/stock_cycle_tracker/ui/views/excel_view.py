@@ -483,7 +483,7 @@ class ExcelView(rio.Component):
             ),
             rio.Column(
                 rio.Text(
-                    "Institutional Analytical Export",
+                    "Analytical Export",
                     font_size=1.0 if is_mobile else 1.15,
                     font_weight="bold",
                 ),

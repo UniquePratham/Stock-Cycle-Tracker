@@ -152,11 +152,11 @@ class CycleService:
 
         return stock, cycle, analysis
 
-    def delete_cycle(self, cycle_id: int) -> bool:
-        return self.repo.delete_cycle(cycle_id)
+    def delete_cycle(self, cycle_id: int, user_id: Optional[int] = None) -> bool:
+        return self.repo.delete_cycle(cycle_id, user_id=user_id)
 
-    def delete_stock(self, stock_id: int) -> bool:
-        return self.repo.delete_stock(stock_id)
+    def delete_stock(self, stock_id: int, user_id: Optional[int] = None) -> bool:
+        return self.repo.delete_stock(stock_id, user_id=user_id)
 
     def list_all_stocks(self) -> List[Stock]:
         return self.repo.list_stocks()

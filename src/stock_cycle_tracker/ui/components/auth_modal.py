@@ -139,7 +139,7 @@ class AuthModal(rio.Component):
                 header_icon,
                 rio.Column(
                     rio.Text("Investor Account & Access", font_weight="bold", font_size=1.12),
-                    rio.Text("Manage tracked portfolios with offline institutional privacy", font_size=0.72, fill=COLOR_TEXT_MUTED),
+                    rio.Text("Track your own stock cycles", font_size=0.72, fill=COLOR_TEXT_MUTED),
                     spacing=0.02,
                 ),
                 spacing=0.35,

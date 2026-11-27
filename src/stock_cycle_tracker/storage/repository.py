@@ -114,6 +114,53 @@ class StockCycleRepository:
             conn.commit()
             return cur.rowcount > 0
 
+    # ------------------ Session CRUD ------------------
+
+    def create_session(self, user_id: int, token_hash: str, ttl_days: int = 30) -> None:
+        """Stores a session row. Only the token *hash* is persisted."""
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            # `datetime('now', ?)` needs a signed modifier, so build it explicitly
+            # rather than prefixing "+" (a negative ttl would become "+-1 days").
+            modifier = f"{int(ttl_days):+d} days"
+            cur.execute(
+                """
+                INSERT INTO sessions (user_id, token_hash, expires_at)
+                VALUES (?, ?, datetime('now', ?))
+                """,
+                (user_id, token_hash, modifier),
+            )
+            conn.commit()
+
+    def get_session_user_id(self, token_hash: str) -> Optional[int]:
+        """Returns the user id for a live session, or None if unknown/expired."""
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT user_id FROM sessions
+                WHERE token_hash = ? AND expires_at > datetime('now')
+                """,
+                (token_hash,),
+            )
+            row = cur.fetchone()
+            return int(row["user_id"]) if row else None
+
+    def delete_session(self, token_hash: str) -> None:
+        """Removes a session, so its cookie stops working."""
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
+            conn.commit()
+
+    def purge_expired_sessions(self) -> int:
+        """Deletes expired sessions and returns how many were removed."""
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM sessions WHERE expires_at <= datetime('now')")
+            conn.commit()
+            return cur.rowcount
+
     # ------------------ Stock CRUD ------------------
 
     def create_or_get_stock(self, stock: Stock, user_id: Optional[int] = None) -> Stock:
@@ -201,10 +248,21 @@ class StockCycleRepository:
                 for row in cur.fetchall()
             ]
 
-    def delete_stock(self, stock_id: int) -> bool:
+    def delete_stock(self, stock_id: int, user_id: Optional[int] = None) -> bool:
+        """Deletes a stock. When `user_id` is given, only that user's row is removed.
+
+        The ownership check lives in the WHERE clause rather than a separate
+        read, so a caller cannot delete another user's stock by guessing an id.
+        """
         with self.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("DELETE FROM stocks WHERE id = ?", (stock_id,))
+            if user_id is not None:
+                cur.execute(
+                    "DELETE FROM stocks WHERE id = ? AND user_id = ?",
+                    (stock_id, user_id),
+                )
+            else:
+                cur.execute("DELETE FROM stocks WHERE id = ?", (stock_id,))
             conn.commit()
             return cur.rowcount > 0
 
@@ -311,10 +369,26 @@ class StockCycleRepository:
                 results.append((stock, cycle))
             return results
 
-    def delete_cycle(self, cycle_id: int) -> bool:
+    def delete_cycle(self, cycle_id: int, user_id: Optional[int] = None) -> bool:
+        """Deletes a cycle. When `user_id` is given, only that user's cycle is removed.
+
+        Ownership is checked through the parent stock, in the same statement, so
+        a guessed cycle id cannot delete someone else's row.
+        """
         with self.db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("DELETE FROM cycles WHERE id = ?", (cycle_id,))
+            if user_id is not None:
+                cur.execute(
+                    """
+                    DELETE FROM cycles
+                    WHERE id = ? AND stock_id IN (
+                        SELECT id FROM stocks WHERE user_id = ?
+                    )
+                    """,
+                    (cycle_id, user_id),
+                )
+            else:
+                cur.execute("DELETE FROM cycles WHERE id = ?", (cycle_id,))
             conn.commit()
             return cur.rowcount > 0
 
