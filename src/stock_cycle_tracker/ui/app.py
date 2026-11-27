@@ -138,6 +138,53 @@ class RootComponent(rio.Component):
         self.active_page = "home"
         self.selected_stock = None
 
+    def __init__(self, **kwargs) -> None:
+        """Resolves the session and the URL's requested page, once.
+
+        This runs before the first build, so the state it sets is stable by the
+        time `build()` reads it. Doing this work inside `build()` would mutate
+        state during a build, which marks the component dirty and schedules
+        another build — an infinite reload loop.
+        """
+        super().__init__(**kwargs)
+
+        # Rio's observable properties raise AttributeError until they have been
+        # assigned, so every read here goes through a safe getter.
+        def current(field: str, default=None):
+            try:
+                return getattr(self, field)
+            except AttributeError:
+                return default
+
+        # Restore the login from the httponly session cookie, so a reload or a
+        # new tab lands the user back where they were.
+        restored = current("current_user")
+        if restored is None:
+            restored = current_user(self.session)
+
+        # Assign every field explicitly. A property that is never assigned keeps
+        # raising AttributeError, which would crash the first build.
+        self.current_user = restored
+        self.active_page = current("active_page", "home") or "home"
+        self.selected_stock = current("selected_stock")
+        self.is_mobile_menu_open = bool(current("is_mobile_menu_open", False))
+        self.is_dark_mode = bool(current("is_dark_mode", True))
+        self.is_auth_modal_open = bool(current("is_auth_modal_open", False))
+        self.auth_modal_initial_tab = current("auth_modal_initial_tab", "signin") or "signin"
+        self.initial_page = current("initial_page", "home") or "home"
+        self.initial_stock = current("initial_stock")
+        self._pending_cookie_url = current("_pending_cookie_url", "") or ""
+
+        # A signed-in visitor landing on "/" goes straight to the dashboard.
+        if restored is not None and self.active_page == "home":
+            self.active_page = "dashboard"
+
+        # Honour the page the URL asked for (set by the page wrappers).
+        if self.initial_page != "home" and restored is not None:
+            self.active_page = self.initial_page
+            if self.initial_stock:
+                self.selected_stock = self.initial_stock
+
     def _build_nav_button(self, label: str, icon: str, page_name: str, is_mobile: bool = False) -> rio.Component:
         is_active = self.active_page == page_name
         return rio.Button(
@@ -154,23 +201,11 @@ class RootComponent(rio.Component):
     def build(self) -> rio.Component:
         is_mobile = self.session.window_width < 60.0
 
-        # Restore the login from the httponly session cookie, so a reload or a
-        # new tab lands the user back where they were instead of on the landing
-        # page.
-        if self.current_user is None:
-            restored = current_user(self.session)
-            if restored is not None:
-                self.current_user = restored
-                if self.active_page == "home":
-                    self.active_page = "dashboard"
-
-        # Honour the page the URL asked for (set by the page wrappers).
-        if self.initial_page and self.initial_page != "home":
-            if self.current_user is not None:
-                self.active_page = self.initial_page
-                if self.initial_stock:
-                    self.selected_stock = self.initial_stock
-
+        # NOTE: build() must not mutate component state. Assigning to
+        # `self.active_page` here marks the component dirty, which schedules
+        # another build, which assigns again — an infinite reload loop. The
+        # session restore and the URL's requested page are therefore resolved
+        # once, in `on_session_start`, and only read here.
         # Brand Icon component
         brand_icon_component: rio.Component
         if FAVICON_PATH.exists():
